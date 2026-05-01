@@ -29,6 +29,7 @@ Deliver a reliable SAP Business One assistant that combines natural-language int
 4. Provide a simple Blazor web chat UI for internal users.
 5. Establish a clean architecture foundation so LLM providers, persistence, cache, and SAP adapters can evolve independently.
 6. Help SAP Business One developers generate usable C# examples, integration snippets, and implementation scaffolds for SAP B1 application scenarios.
+7. (Deferred — v2) Let the user choose which LLM model to chat with from a dropdown in the chat interface, without requiring any configuration change or restart.
 
 ## Non-Goals For V1
 
@@ -39,6 +40,7 @@ Deliver a reliable SAP Business One assistant that combines natural-language int
 5. Vector database, embeddings, or advanced retrieval pipelines.
 6. Streaming chat transport or SignalR-based realtime UX.
 7. DI API as the primary runtime integration path.
+8. Multi-LLM provider selection UI — deferred to v2 (see FR10 below).
 
 ## Target Users
 
@@ -164,6 +166,15 @@ Deliver a reliable SAP Business One assistant that combines natural-language int
 1. The system must log chat requests, SAP access attempts, and failure paths with correlation identifiers.
 2. The system must support tracing a single conversation across UI, API, application flow, and infrastructure calls.
 
+### FR10: LLM Provider Selection (Deferred — V2)
+
+1. The system must expose a list of available LLM providers / models via a dedicated API endpoint.
+2. The chat UI must display a dropdown near the input bar that lists available models and lets the user switch before or during a conversation.
+3. The selected model must travel with each chat request so the backend routes to the correct LLM client.
+4. The selected model must be persisted per conversation session so reopening a past conversation shows which model was used.
+5. Adding a new model must require only a configuration entry — no code change or redeployment.
+6. The system must fail gracefully (with a clear UI error) if the selected model is unavailable at request time.
+
 ## Non-Functional Requirements
 
 ### Performance
@@ -201,6 +212,7 @@ Deliver a reliable SAP Business One assistant that combines natural-language int
 4. Responses should be readable and focused rather than dumping raw JSON.
 5. The user should be able to understand whether an answer came from model reasoning, SAP data grounding, or both.
 6. Developer responses should clearly separate explanation from generated C# code.
+7. (V2) The model selector dropdown should sit next to the chat input, be compact enough not to distract, and display the currently active model name at a glance.
 
 ## Success Metrics
 

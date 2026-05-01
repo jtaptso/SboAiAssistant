@@ -123,10 +123,21 @@ Application <- Infrastructure
 3. Add contract-style tests around the SAP gateway using mocked Service Layer responses.
 4. Run one local end-to-end smoke path from Blazor to API to Application to Ollama to persistence.
 
+### Phase 8: LLM Provider Selector (Deferred)
+
+1. Introduce an `ILlmProviderRegistry` in `Application` that holds a list of available provider descriptors (name, model ID, base URL).
+2. Extend `OllamaOptions` (or add a sibling `LlmProviderOptions` collection) so multiple Ollama-compatible endpoints and model names can be configured in `appsettings.json`.
+3. Expose a `GET /api/llm/providers` endpoint returning the available providers so the Web UI can populate the dropdown without hard-coding choices.
+4. Add a `ProviderId` / `ModelId` field to `SendMessageRequest` so the selected model travels with each chat request.
+5. Modify `ChatService` to resolve the right `ILlmClient` instance (or pass the selected base URL / model to the existing Ollama client) based on the incoming `ProviderId`.
+6. In `ChatPage.razor`, place a compact dropdown next to the chat input bar listing available models. The selected value is held in `ChatState` and sent with every message.
+7. Persist the model choice per `ChatSession` so that reopening a conversation remembers which model was used.
+8. Add unit tests for provider resolution and model-selection propagation through `ChatService`.
+
 ## Initial Scope Decisions
 
 - Included in v1: clean architecture scaffold, Ollama-first LLM path, SQLite, in-memory cache, Service Layer-first SAP boundary, Blazor Web chat UI, prompt management, conversation memory abstractions, and SAP B1 developer assistance with C# code generation.
-- Deferred from v1: DI API implementation, SignalR or token streaming, production auth, Redis, vector search, multi-tenancy, and broad write-capable SAP commands.
+- Deferred from v1: DI API implementation, SignalR or token streaming, production auth, Redis, vector search, multi-tenancy, broad write-capable SAP commands, and multi-LLM provider selection (Phase 8).
 - Recommendation: keep SAP operations read-only until the prompt and orchestration flow is stable.
 
 ## Practical Recommendations
