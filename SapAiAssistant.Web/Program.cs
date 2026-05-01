@@ -8,7 +8,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // API client pointing at SapAiAssistant.Api
-var apiBase = builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5000";
+var apiBase = builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5062";
 builder.Services.AddHttpClient<ApiClient>(client =>
     client.BaseAddress = new Uri(apiBase));
 
