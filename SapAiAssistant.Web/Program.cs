@@ -8,9 +8,13 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // API client pointing at SapAiAssistant.Api
+// Timeout must exceed Ollama's response time — match the API's 10-minute LLM timeout
 var apiBase = builder.Configuration["Api:BaseUrl"] ?? "http://localhost:5062";
 builder.Services.AddHttpClient<ApiClient>(client =>
-    client.BaseAddress = new Uri(apiBase));
+{
+    client.BaseAddress = new Uri(apiBase);
+    client.Timeout = TimeSpan.FromMinutes(11);
+});
 
 // Scoped chat state — one instance per SignalR circuit
 builder.Services.AddScoped<ChatState>();
