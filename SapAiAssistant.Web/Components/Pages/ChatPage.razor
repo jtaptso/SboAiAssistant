@@ -17,10 +17,12 @@
         </div>
 
         <div class="new-chat-buttons">
-            <button class="btn-new-chat" @onclick="() => State.StartNewConversation(AssistantMode.BusinessUser)">
+            <button class="btn-new-chat @(State.ActiveMode == AssistantMode.BusinessUser ? "btn-active-biz" : "")"
+                    @onclick="() => State.StartNewConversation(AssistantMode.BusinessUser)">
                 + Business Query
             </button>
-            <button class="btn-new-chat btn-dev" @onclick="() => State.StartNewConversation(AssistantMode.Developer)">
+            <button class="btn-new-chat btn-dev @(State.ActiveMode == AssistantMode.Developer ? "btn-active-dev" : "")"
+                    @onclick="() => State.StartNewConversation(AssistantMode.Developer)">
                 + Developer Mode
             </button>
         </div>

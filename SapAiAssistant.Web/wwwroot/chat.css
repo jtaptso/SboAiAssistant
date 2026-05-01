@@ -58,6 +58,19 @@
 .btn-new-chat:hover { background: #45475a; }
 .btn-new-chat.btn-dev { border-left: 3px solid #a6e3a1; }
 
+.btn-new-chat.btn-active-biz {
+    background: #1e3a5f;
+    color: #89b4fa;
+    border-left: 3px solid #89b4fa;
+    font-weight: 600;
+}
+
+.btn-new-chat.btn-active-dev {
+    background: #1a3a2a;
+    color: #a6e3a1;
+    font-weight: 600;
+}
+
 /* ── Conversation list ───────────────────────────────────────────────── */
 
 .conversation-list {
@@ -335,5 +348,13 @@
     background: #45475a;
     border-color: #89b4fa;
     color: #89b4fa;
+}
+
+.prompt-chip:active,
+.prompt-chip:focus-visible {
+    background: #89b4fa;
+    border-color: #89b4fa;
+    color: #1e1e2e;
+    outline: none;
 }
 
