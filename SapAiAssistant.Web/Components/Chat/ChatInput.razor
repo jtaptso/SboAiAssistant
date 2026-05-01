@@ -1,0 +1,36 @@
+<div class="chat-input-bar">
+    <textarea class="chat-textarea"
+              @bind="InputText"
+              @bind:event="oninput"
+              @onkeydown="OnKeyDown"
+              placeholder="Ask about SAP Business One…"
+              rows="1"
+              disabled="@IsDisabled"></textarea>
+
+    <button class="btn-send"
+            @onclick="HandleSend"
+            disabled="@(IsDisabled || string.IsNullOrWhiteSpace(InputText))">
+        Send
+    </button>
+</div>
+
+@code {
+    [Parameter] public EventCallback<string> OnSend { get; set; }
+    [Parameter] public bool IsDisabled { get; set; }
+
+    private string InputText { get; set; } = string.Empty;
+
+    private async Task HandleSend()
+    {
+        var text = InputText.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+        InputText = string.Empty;
+        await OnSend.InvokeAsync(text);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await HandleSend();
+    }
+}

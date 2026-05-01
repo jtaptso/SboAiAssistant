@@ -1,0 +1,49 @@
+## .NET build artefacts
+bin/
+obj/
+*.user
+*.suo
+.vs/
+_ReSharper*/
+*.DotSettings.user
+
+## SQLite databases (runtime data — not source)
+*.db
+*.db-shm
+*.db-wal
+
+## Rider / JetBrains
+.idea/
+*.sln.iml
+
+## VS Code
+.vscode/
+
+## OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+## Publish output
+publish/
+out/
+
+## User secrets (never commit)
+**/secrets.json
+**/appsettings.Local.json
+
+## Test results
+TestResults/
+coverage/
+*.trx
+*.coveragexml
+
+## Log files
+*.log
+logs/

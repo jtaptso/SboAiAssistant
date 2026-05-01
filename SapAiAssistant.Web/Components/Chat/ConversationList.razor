@@ -1,0 +1,25 @@
+@using SapAiAssistant.Application.DTOs
+
+<nav class="conversation-list">
+    @if (!Conversations.Any())
+    {
+        <p class="no-conversations">No conversations yet.</p>
+    }
+    else
+    {
+        @foreach (var c in Conversations)
+        {
+            <button class="conversation-item @(c.Id == ActiveSessionId ? "active" : "")"
+                    @onclick="() => OnSelect.InvokeAsync(c.Id)">
+                <span class="conv-title">@c.Title</span>
+                <span class="conv-meta">@c.UpdatedAt.ToString("MMM d, HH:mm")</span>
+            </button>
+        }
+    }
+</nav>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ConversationSummary> Conversations { get; set; } = [];
+    [Parameter] public Guid? ActiveSessionId { get; set; }
+    [Parameter] public EventCallback<Guid> OnSelect { get; set; }
+}

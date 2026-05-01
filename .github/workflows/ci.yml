@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore SapAiAssistant.slnx
+
+      - name: Build
+        run: dotnet build SapAiAssistant.slnx --no-restore --configuration Release
+
+      - name: Run unit tests
+        run: >
+          dotnet test SapAiAssistant.Tests.Unit/SapAiAssistant.Tests.Unit.csproj
+          --no-build
+          --configuration Release
+          --logger "trx;LogFileName=unit-results.trx"
+          --results-directory TestResults
+
+      - name: Run integration tests
+        run: >
+          dotnet test SapAiAssistant.Tests.Integration/SapAiAssistant.Tests.Integration.csproj
+          --no-build
+          --configuration Release
+          --logger "trx;LogFileName=integration-results.trx"
+          --results-directory TestResults
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Test Results
+          path: TestResults/*.trx
+          reporter: dotnet-trx

@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="SapAiAssistant.Api/SapAiAssistant.Api.csproj" />
+  <Project Path="SapAiAssistant.Application/SapAiAssistant.Application.csproj" />
+  <Project Path="SapAiAssistant.Domain/SapAiAssistant.Domain.csproj" />
+  <Project Path="SapAiAssistant.Infrastructure/SapAiAssistant.Infrastructure.csproj" />
+  <Project Path="SapAiAssistant.Tests.Integration/SapAiAssistant.Tests.Integration.csproj" />
+  <Project Path="SapAiAssistant.Tests.Unit/SapAiAssistant.Tests.Unit.csproj" />
+  <Project Path="SapAiAssistant.Web/SapAiAssistant.Web.csproj" />
+</Solution>

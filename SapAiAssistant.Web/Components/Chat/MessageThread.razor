@@ -1,0 +1,112 @@
+@using SapAiAssistant.Application.DTOs
+@using SapAiAssistant.Domain.Entities
+@inject IJSRuntime JS
+
+<div class="message-thread" id="message-thread">
+    @foreach (var msg in Messages)
+    {
+        <div class="message @(msg.Role == MessageRole.User ? "msg-user" : "msg-assistant")">
+            <div class="msg-bubble">
+                @if (msg.Role == MessageRole.Assistant)
+                {
+                    @RenderAssistantContent(msg.Content)
+                }
+                else
+                {
+                    <span>@msg.Content</span>
+                }
+            </div>
+            <div class="msg-meta">
+                @if (msg.IsGroundedBySap)
+                {
+                    <span class="sap-badge" title="Grounded by SAP data">SAP</span>
+                }
+                <span class="msg-time">@msg.CreatedAt.ToString("HH:mm")</span>
+            </div>
+        </div>
+    }
+
+    @if (IsLoading)
+    {
+        <div class="message msg-assistant">
+            <div class="msg-bubble typing-indicator">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<MessageDto> Messages { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+        => await JS.InvokeVoidAsync("scrollToBottom", "message-thread");
+
+    /// <summary>
+    /// Splits assistant content into prose and fenced C# code blocks,
+    /// rendering code in a styled pre/code element.
+    /// </summary>
+    private RenderFragment RenderAssistantContent(string content) => builder =>
+    {
+        var parts = SplitCodeBlocks(content);
+        int seq = 0;
+        foreach (var (text, isCode) in parts)
+        {
+            if (isCode)
+            {
+                builder.OpenElement(seq++, "pre");
+                builder.AddAttribute(seq++, "class", "code-block");
+                builder.OpenElement(seq++, "code");
+                builder.AddContent(seq++, text);
+                builder.CloseElement();
+                builder.CloseElement();
+            }
+            else
+            {
+                builder.OpenElement(seq++, "span");
+                builder.AddContent(seq++, text);
+                builder.CloseElement();
+            }
+        }
+    };
+
+    private static List<(string Text, bool IsCode)> SplitCodeBlocks(string content)
+    {
+        var result = new List<(string, bool)>();
+        var remaining = content.AsSpan();
+        const string fence = "```";
+
+        while (!remaining.IsEmpty)
+        {
+            var start = remaining.IndexOf(fence, StringComparison.Ordinal);
+            if (start < 0)
+            {
+                result.Add((remaining.ToString(), false));
+                break;
+            }
+
+            if (start > 0)
+                result.Add((remaining[..start].ToString(), false));
+
+            remaining = remaining[(start + fence.Length)..];
+
+            // Skip optional language tag (e.g. "csharp\n")
+            var newline = remaining.IndexOf('\n');
+            if (newline >= 0)
+                remaining = remaining[(newline + 1)..];
+
+            var end = remaining.IndexOf(fence, StringComparison.Ordinal);
+            if (end < 0)
+            {
+                result.Add((remaining.ToString(), true));
+                break;
+            }
+
+            result.Add((remaining[..end].ToString(), true));
+            remaining = remaining[(end + fence.Length)..];
+        }
+
+        return result;
+    }
+}

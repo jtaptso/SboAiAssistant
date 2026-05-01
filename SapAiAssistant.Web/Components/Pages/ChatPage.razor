@@ -1,0 +1,74 @@
+@page "/"
+@page "/chat"
+@rendermode InteractiveServer
+@using SapAiAssistant.Domain.Entities
+@using SapAiAssistant.Web.Services
+@using SapAiAssistant.Web.Components.Chat
+@inject ChatState State
+@implements IDisposable
+
+<PageTitle>SAP B1 AI Assistant</PageTitle>
+
+<div class="chat-shell">
+
+    <aside class="chat-sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-title">SAP AI Assistant</span>
+        </div>
+
+        <div class="new-chat-buttons">
+            <button class="btn-new-chat" @onclick="() => State.StartNewConversation(AssistantMode.BusinessUser)">
+                + Business Query
+            </button>
+            <button class="btn-new-chat btn-dev" @onclick="() => State.StartNewConversation(AssistantMode.Developer)">
+                + Developer Mode
+            </button>
+        </div>
+
+        <ConversationList
+            Conversations="State.Conversations"
+            ActiveSessionId="State.ActiveSessionId"
+            OnSelect="OnSelectConversation" />
+    </aside>
+
+    <section class="chat-main">
+        @if (!string.IsNullOrEmpty(State.ErrorMessage))
+        {
+            <div class="error-banner">
+                <span>@State.ErrorMessage</span>
+                <button @onclick="DismissError">✕</button>
+            </div>
+        }
+
+        <div class="chat-mode-badge @(State.ActiveMode == AssistantMode.Developer ? "badge-dev" : "badge-biz")">
+            @(State.ActiveMode == AssistantMode.Developer ? "Developer Mode" : "Business User Mode")
+        </div>
+
+        <MessageThread Messages="State.Messages" IsLoading="State.IsLoading" />
+
+        <ChatInput OnSend="OnSendMessage" IsDisabled="State.IsLoading" />
+    </section>
+
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += StateHasChanged;
+        await State.LoadConversationsAsync();
+    }
+
+    private async Task OnSelectConversation(Guid sessionId)
+        => await State.SelectConversationAsync(sessionId);
+
+    private async Task OnSendMessage(string text)
+        => await State.SendMessageAsync(text);
+
+    private void DismissError()
+    {
+        // Re-expose via ChatState if needed; for now trigger a re-render
+        StateHasChanged();
+    }
+
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}
