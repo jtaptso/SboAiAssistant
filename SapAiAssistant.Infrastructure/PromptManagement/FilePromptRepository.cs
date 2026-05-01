@@ -17,6 +17,13 @@ public sealed class FilePromptRepository : IPromptRepository
     {
         _options = options.Value;
         _logger = logger;
+
+        // Resolve relative paths against the current working directory so the
+        // repository works regardless of how the host process was launched.
+        if (!Path.IsPathRooted(_options.TemplatesPath))
+        {
+            _options.TemplatesPath = Path.GetFullPath(_options.TemplatesPath);
+        }
     }
 
     public async Task<string> GetTemplateAsync(string name, CancellationToken cancellationToken = default)
