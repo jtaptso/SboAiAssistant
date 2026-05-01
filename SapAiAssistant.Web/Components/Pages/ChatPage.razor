@@ -46,6 +46,21 @@
 
         <MessageThread Messages="State.Messages" IsLoading="State.IsLoading" />
 
+        @if (!State.IsLoading && State.Messages.Count == 0)
+        {
+            <div class="empty-state">
+                <div class="empty-state-icon">🤖</div>
+                <h2 class="empty-state-title">SAP AI Assistant</h2>
+                <p class="empty-state-subtitle">Ask anything about your SAP Business One data.</p>
+                <div class="empty-state-prompts">
+                    <button class="prompt-chip" @onclick='() => OnSendMessage("What is SAP Business One?")'>What is SAP Business One?</button>
+                    <button class="prompt-chip" @onclick='() => OnSendMessage("Show me customer C001 details")'>Show me customer C001 details</button>
+                    <button class="prompt-chip" @onclick='() => OnSendMessage("Look up invoice 200")'>Look up invoice 200</button>
+                    <button class="prompt-chip" @onclick='() => OnSendMessage("How do I add a new business partner?")'>How do I add a new business partner?</button>
+                </div>
+            </div>
+        }
+
         <ChatInput OnSend="OnSendMessage" IsDisabled="State.IsLoading" />
     </section>
 

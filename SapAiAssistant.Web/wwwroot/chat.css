@@ -3,8 +3,12 @@
 .chat-shell {
     display: flex;
     height: 100vh;
+    width: 100vw;
     overflow: hidden;
     font-family: system-ui, sans-serif;
+    position: fixed;
+    top: 0;
+    left: 0;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────── */
@@ -273,3 +277,63 @@
 
 .btn-send:hover:not(:disabled) { background: #b4d0ff; }
 .btn-send:disabled { opacity: .4; cursor: default; }
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+
+.empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+    text-align: center;
+    color: #cdd6f4;
+    user-select: none;
+}
+
+.empty-state-icon {
+    font-size: 3.5rem;
+    line-height: 1;
+}
+
+.empty-state-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #89b4fa;
+    margin: 0;
+}
+
+.empty-state-subtitle {
+    font-size: 1rem;
+    color: #6c7086;
+    margin: 0;
+}
+
+.empty-state-prompts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+    justify-content: center;
+    margin-top: .5rem;
+    max-width: 580px;
+}
+
+.prompt-chip {
+    background: #313244;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    border-radius: 20px;
+    padding: .45rem 1rem;
+    font-size: .85rem;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+}
+
+.prompt-chip:hover {
+    background: #45475a;
+    border-color: #89b4fa;
+    color: #89b4fa;
+}
+
