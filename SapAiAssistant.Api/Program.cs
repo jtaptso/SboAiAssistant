@@ -7,7 +7,6 @@ using SapAiAssistant.Api.Middleware;
 using SapAiAssistant.Application;
 using SapAiAssistant.Application.DTOs;
 using SapAiAssistant.Application.Interfaces;
-using SapAiAssistant.Domain.Abstractions;
 using SapAiAssistant.Infrastructure;
 using SapAiAssistant.Infrastructure.Persistence;
 
@@ -120,14 +119,11 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
     Predicate = _ => false   // no checks; just confirms the process is alive
 });
 
-// SAP-specific availability check
-app.MapGet("/health/sap", async (ISapAssistantGateway sap, CancellationToken ct) =>
+// SAP-specific health check — uses the "sap" tag registered in AddInfrastructureHealthChecks
+app.MapHealthChecks("/health/sap", new HealthCheckOptions
 {
-    var available = await sap.IsAvailableAsync(ct);
-    return Results.Ok(new { available });
-})
-.WithName("SapHealth")
-.WithTags("Health");
+    Predicate = check => check.Tags.Contains("sap")
+});
 
 app.Run();
 

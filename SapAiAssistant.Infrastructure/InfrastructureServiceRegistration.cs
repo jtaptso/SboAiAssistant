@@ -65,8 +65,10 @@ public static class InfrastructureServiceRegistration
                 .GetSection(SapOptions.Section)
                 .Get<SapOptions>() ?? new SapOptions();
 
-            client.BaseAddress = new Uri(
-                opts.ServiceLayerBaseUrl.TrimEnd('/') + "/");
+            if (!string.IsNullOrWhiteSpace(opts.ServiceLayerBaseUrl))
+            {
+                client.BaseAddress = new Uri(opts.ServiceLayerBaseUrl.TrimEnd('/') + "/");
+            }
             client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
         })
         .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
