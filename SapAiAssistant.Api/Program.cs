@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Scalar.AspNetCore;
 using SapAiAssistant.Api.Middleware;
 using SapAiAssistant.Application;
 using SapAiAssistant.Application.DTOs;
@@ -46,6 +47,7 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(); // interactive UI at /scalar/v1
 }
 
 // ── Middleware pipeline ────────────────────────────────────────────────────
