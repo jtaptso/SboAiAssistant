@@ -42,20 +42,24 @@ public sealed class ChatState
         }
     }
 
+    // Fallback list used when the API endpoint is unreachable at startup.
+    private static readonly IReadOnlyList<string> _defaultModels = ["llama3", "gemma4:e4b"];
+
     public async Task LoadModelsAsync(CancellationToken ct = default)
     {
         try
         {
             var models = await _api.GetModelsAsync(ct);
-            AvailableModels = models;
-            if (AvailableModels.Count > 0 && string.IsNullOrEmpty(SelectedModel))
-                SelectedModel = AvailableModels[0];
-            Notify();
+            AvailableModels = models.Count > 0 ? models : _defaultModels;
         }
         catch
         {
-            // Non-fatal: fall back to empty list; model selector will be hidden
+            AvailableModels = _defaultModels;
         }
+
+        if (string.IsNullOrEmpty(SelectedModel) && AvailableModels.Count > 0)
+            SelectedModel = AvailableModels[0];
+        Notify();
     }
 
     public void SelectModel(string model)
