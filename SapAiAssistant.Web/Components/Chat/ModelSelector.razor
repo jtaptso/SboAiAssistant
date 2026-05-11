@@ -1,5 +1,6 @@
 @using SapAiAssistant.Web.Services
 @inject ChatState State
+@implements IDisposable
 
 @if (State.AvailableModels.Count > 0)
 {
@@ -19,6 +20,12 @@
 }
 
 @code {
+    protected override void OnInitialized()
+        => State.OnChange += StateHasChanged;
+
+    public void Dispose()
+        => State.OnChange -= StateHasChanged;
+
     private void OnChange(ChangeEventArgs e)
         => State.SelectModel(e.Value?.ToString() ?? string.Empty);
 }

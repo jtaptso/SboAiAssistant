@@ -20,8 +20,8 @@ public sealed class ChatState
     public bool IsLoading { get; private set; }
     public string? ErrorMessage { get; private set; }
 
-    public IReadOnlyList<string> AvailableModels { get; private set; } = [];
-    public string SelectedModel { get; private set; } = string.Empty;
+    public IReadOnlyList<string> AvailableModels { get; private set; } = ["llama3", "gemma4:e4b"];
+    public string SelectedModel { get; private set; } = "llama3";
 
     public event Action? OnChange;
 
