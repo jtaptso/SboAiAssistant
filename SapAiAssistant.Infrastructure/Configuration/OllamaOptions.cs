@@ -7,5 +7,5 @@ public sealed class OllamaOptions
     public string BaseUrl { get; set; } = "http://localhost:11434";
     public string Model { get; set; } = "llama3";
     public int TimeoutMinutes { get; set; } = 10;
-    public List<string> AvailableModels { get; set; } = ["llama3", "gemma4:e4b"];
+    public List<string> AvailableModels { get; set; } = [];
 }
