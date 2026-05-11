@@ -20,6 +20,9 @@ public sealed class ChatState
     public bool IsLoading { get; private set; }
     public string? ErrorMessage { get; private set; }
 
+    public IReadOnlyList<string> AvailableModels { get; private set; } = [];
+    public string SelectedModel { get; private set; } = string.Empty;
+
     public event Action? OnChange;
 
     public ChatState(ApiClient api) => _api = api;
@@ -37,6 +40,29 @@ public sealed class ChatState
         {
             SetError($"Failed to load conversations: {ex.Message}");
         }
+    }
+
+    public async Task LoadModelsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var models = await _api.GetModelsAsync(ct);
+            AvailableModels = models;
+            if (AvailableModels.Count > 0 && string.IsNullOrEmpty(SelectedModel))
+                SelectedModel = AvailableModels[0];
+            Notify();
+        }
+        catch
+        {
+            // Non-fatal: fall back to empty list; model selector will be hidden
+        }
+    }
+
+    public void SelectModel(string model)
+    {
+        if (!string.IsNullOrWhiteSpace(model))
+            SelectedModel = model;
+        Notify();
     }
 
     public async Task SelectConversationAsync(Guid sessionId, CancellationToken ct = default)
@@ -76,7 +102,8 @@ public sealed class ChatState
 
         try
         {
-            var request = new SendMessageRequest(ActiveSessionId, ActiveMode, userText);
+            var model = string.IsNullOrEmpty(SelectedModel) ? null : SelectedModel;
+            var request = new SendMessageRequest(ActiveSessionId, ActiveMode, userText, model);
             var response = await _api.SendMessageAsync(request, ct);
 
             if (response is null)

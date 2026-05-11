@@ -21,14 +21,15 @@ public sealed class OllamaClient : ILlmClient
         _logger = logger;
     }
 
-    public async Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken = default)
+    public async Task<string> GenerateAsync(string prompt, string? model = null, CancellationToken cancellationToken = default)
     {
-        var requestBody = new OllamaRequest(_options.Model, prompt, Stream: false);
+        var modelToUse = model ?? _options.Model;
+        var requestBody = new OllamaRequest(modelToUse, prompt, Stream: false);
         var json = JsonSerializer.Serialize(requestBody, OllamaJsonContext.Default.OllamaRequest);
 
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        _logger.LogDebug("Calling Ollama model {Model}", _options.Model);
+        _logger.LogDebug("Calling Ollama model {Model}", modelToUse);
 
         var response = await _http.PostAsync("/api/generate", content, cancellationToken);
         response.EnsureSuccessStatusCode();

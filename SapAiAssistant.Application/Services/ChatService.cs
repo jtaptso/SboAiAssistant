@@ -86,8 +86,9 @@ public sealed class ChatService : IChatService
 
         _logger.LogInformation("Sending prompt to LLM for session {SessionId}", session.Id);
 
-        // Call LLM
-        var assistantText = await _llmClient.GenerateAsync(prompt, cancellationToken);
+        // Call LLM — use the model requested by the client, fall back to server default
+        var assistantText = await _llmClient.GenerateAsync(prompt, request.Model, cancellationToken);
+        var resolvedModel = request.Model ?? "default";
 
         // Persist assistant response — mark as grounded when SAP data was injected
         var isGrounded = sapContext is not null;
@@ -101,7 +102,8 @@ public sealed class ChatService : IChatService
             assistantMessage.Id,
             assistantText,
             assistantMessage.IsGroundedBySap,
-            session.Mode);
+            session.Mode,
+            resolvedModel);
     }
 
     public async Task<ConversationDetail?> GetConversationAsync(Guid sessionId, CancellationToken cancellationToken = default)

@@ -30,7 +30,7 @@ public sealed class ChatServiceTests
                 Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns("rendered-prompt");
 
-        _llm.GenerateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        _llm.GenerateAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns("llm-response");
 
         _memory.GetRecentAsync(Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
@@ -153,5 +153,45 @@ public sealed class ChatServiceTests
         result.Should().NotBeNull();
         result!.Title.Should().Be("Test");
         result.Messages.Should().HaveCount(1);
+    }
+
+    // ── Model selection ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SendMessage_WithExplicitModel_PassesModelToLlm()
+    {
+        var request = new SendMessageRequest(null, AssistantMode.BusinessUser, "Hello", "gemma4:e4b");
+
+        await _sut.SendMessageAsync(request);
+
+        await _llm.Received(1).GenerateAsync(
+            Arg.Any<string>(),
+            "gemma4:e4b",
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SendMessage_WithExplicitModel_EchoesModelInResponse()
+    {
+        var request = new SendMessageRequest(null, AssistantMode.BusinessUser, "Hello", "gemma4:e4b");
+
+        var response = await _sut.SendMessageAsync(request);
+
+        response.Model.Should().Be("gemma4:e4b");
+    }
+
+    [Fact]
+    public async Task SendMessage_WithNullModel_UsesDefaultFallback()
+    {
+        var request = new SendMessageRequest(null, AssistantMode.BusinessUser, "Hello");
+
+        var response = await _sut.SendMessageAsync(request);
+
+        // ChatService sets resolvedModel to "default" when request.Model is null
+        response.Model.Should().Be("default");
+        await _llm.Received(1).GenerateAsync(
+            Arg.Any<string>(),
+            null,
+            Arg.Any<CancellationToken>());
     }
 }

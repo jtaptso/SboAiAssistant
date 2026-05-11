@@ -1,0 +1,24 @@
+@using SapAiAssistant.Web.Services
+@inject ChatState State
+
+@if (State.AvailableModels.Count > 0)
+{
+    <div class="model-selector">
+        <label class="model-selector-label" for="model-select">Model</label>
+        <select id="model-select"
+                class="model-selector-select"
+                value="@State.SelectedModel"
+                disabled="@State.IsLoading"
+                @onchange="OnChange">
+            @foreach (var model in State.AvailableModels)
+            {
+                <option value="@model" selected="@(model == State.SelectedModel)">@model</option>
+            }
+        </select>
+    </div>
+}
+
+@code {
+    private void OnChange(ChangeEventArgs e)
+        => State.SelectModel(e.Value?.ToString() ?? string.Empty);
+}

@@ -63,7 +63,10 @@
             </div>
         }
 
-        <ChatInput OnSend="OnSendMessage" IsDisabled="State.IsLoading" />
+        <div class="chat-input-row">
+            <ModelSelector />
+            <ChatInput OnSend="OnSendMessage" IsDisabled="State.IsLoading" />
+        </div>
     </section>
 
 </div>
@@ -72,7 +75,9 @@
     protected override async Task OnInitializedAsync()
     {
         State.OnChange += StateHasChanged;
-        await State.LoadConversationsAsync();
+        await Task.WhenAll(
+            State.LoadConversationsAsync(),
+            State.LoadModelsAsync());
     }
 
     private async Task OnSelectConversation(Guid sessionId)

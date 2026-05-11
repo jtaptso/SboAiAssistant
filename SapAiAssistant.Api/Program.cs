@@ -3,12 +3,14 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 using SapAiAssistant.Api.Middleware;
 using SapAiAssistant.Application;
 using SapAiAssistant.Application.DTOs;
 using SapAiAssistant.Application.Interfaces;
 using SapAiAssistant.Infrastructure;
+using SapAiAssistant.Infrastructure.Configuration;
 using SapAiAssistant.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -89,6 +91,13 @@ app.MapGet("/api/chat/conversations/{id:guid}", async (
 })
 .WithName("GetConversation")
 .WithTags("Chat");
+
+// ── Model endpoints ────────────────────────────────────────────────────────
+
+app.MapGet("/api/models", (IOptions<OllamaOptions> opts) =>
+    Results.Ok(opts.Value.AvailableModels))
+.WithName("GetModels")
+.WithTags("Models");
 
 // ── Health endpoints ───────────────────────────────────────────────────────
 

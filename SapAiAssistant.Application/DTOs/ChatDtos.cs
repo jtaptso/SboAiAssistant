@@ -5,7 +5,8 @@ namespace SapAiAssistant.Application.DTOs;
 public sealed record SendMessageRequest(
     Guid? SessionId,
     AssistantMode Mode,
-    string UserMessage
+    string UserMessage,
+    string? Model = null
 );
 
 public sealed record SendMessageResponse(
@@ -13,7 +14,8 @@ public sealed record SendMessageResponse(
     Guid MessageId,
     string AssistantMessage,
     bool IsGroundedBySap,
-    AssistantMode Mode
+    AssistantMode Mode,
+    string Model
 );
 
 public sealed record ConversationSummary(

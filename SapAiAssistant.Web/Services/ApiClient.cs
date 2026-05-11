@@ -45,4 +45,10 @@ public sealed class ApiClient
         CancellationToken cancellationToken = default)
         => await _http.GetFromJsonAsync<ConversationDetail>(
                $"/api/chat/conversations/{sessionId}", _jsonOptions, cancellationToken);
+
+    public async Task<IReadOnlyList<string>> GetModelsAsync(
+        CancellationToken cancellationToken = default)
+        => await _http.GetFromJsonAsync<List<string>>(
+               "/api/models", cancellationToken)
+           ?? [];
 }
