@@ -227,11 +227,164 @@ Initial supported models: `llama3` (existing default) and `gemma4:latest` (new).
 - Unit test `ChatService` to confirm the resolved model name is included in `SendMessageResponse`.
 - Update existing `SendMessageRequest` unit tests to account for the new `Model` property.
 
+### Phase 9: Retrieval-Augmented Generation (RAG)
+
+Lets the assistant ground its answers in a user-managed knowledge base (manuals, SOPs, SAP notes) by finding relevant text chunks at query time and injecting them into the prompt.
+
+#### Data flow
+
+```
+[User uploads document]
+       │
+       ▼
+DocumentIngestionService
+  → chunk text
+  → embed each chunk (OllamaEmbeddingClient → /api/embeddings)
+  → store chunk + embedding in SqliteVectorStore
+       │
+[User sends message]
+       │
+       ▼
+ChatService.SendMessageAsync
+  → RagContextProvider.GetRelevantContextAsync(userMessage)
+       → embed query
+       → cosine-similarity search in SqliteVectorStore (top-K)
+       → format matching chunks as context string
+  → PromptRenderer injects RAG context block into prompt
+  → LLM generates answer grounded in retrieved chunks
+```
+
+#### 9.1 — Domain abstractions (`SapAiAssistant.Domain`)
+
+- Add `Document` entity: `Id`, `Name`, `UploadedAt`, `ChunkCount`.
+- Add `DocumentChunk` entity: `Id`, `DocumentId`, `DocumentName`, `ChunkIndex`, `Content`, `Embedding` (`float[]`).
+- Add `IEmbeddingClient` abstraction:
+  ```csharp
+  Task<float[]> EmbedAsync(string text, CancellationToken ct = default);
+  ```
+- Add `IVectorStore` abstraction:
+  ```csharp
+  Task UpsertAsync(DocumentChunk chunk, CancellationToken ct = default);
+  Task<IReadOnlyList<DocumentChunk>> SearchAsync(float[] queryEmbedding, int topK, float minScore, CancellationToken ct = default);
+  Task DeleteByDocumentAsync(Guid documentId, CancellationToken ct = default);
+  Task<IReadOnlyList<Document>> ListDocumentsAsync(CancellationToken ct = default);
+  ```
+
+#### 9.2 — Configuration (`SapAiAssistant.Infrastructure`)
+
+- Add `EmbeddingOptions` (`"Embedding"` section):
+  ```json
+  "Embedding": {
+    "Model": "nomic-embed-text",
+    "BaseUrl": "http://localhost:11434"
+  }
+  ```
+- Add `RagOptions` (`"Rag"` section):
+  ```json
+  "Rag": {
+    "TopK": 3,
+    "MinSimilarityScore": 0.65,
+    "ChunkSize": 2000,
+    "ChunkOverlap": 200
+  }
+  ```
+
+#### 9.3 — Infrastructure: Embedding client
+
+- Add `OllamaEmbeddingClient` (separate typed `HttpClient`) calling Ollama's `POST /api/embeddings`:
+  ```json
+  { "model": "nomic-embed-text", "prompt": "..." }
+  ```
+  Returns `float[]` parsed from `"embedding"` in the response.
+- Register as `IEmbeddingClient` in `InfrastructureServiceRegistration`.
+- Pull the embedding model once: `ollama pull nomic-embed-text`.
+
+#### 9.4 — Infrastructure: Vector store
+
+- Add `Documents` and `DocumentChunks` tables to `AppDbContext`.
+  - `DocumentChunks` stores the embedding as a JSON-serialised `TEXT` column (portable, no native extension).
+- Add `SqliteVectorStore` implementing `IVectorStore`:
+  - `UpsertAsync`: inserts/updates a chunk row.
+  - `SearchAsync`: loads all chunks for the configured scope, computes cosine similarity in C#, returns top-K above `MinSimilarityScore`. For large corpora this is swapped for `sqlite-vec` later.
+  - `DeleteByDocumentAsync`: deletes all chunk rows for a document.
+  - `ListDocumentsAsync`: reads the `Documents` table.
+- Add an EF Core migration for the two new tables.
+
+#### 9.5 — Application: Ingestion service (`SapAiAssistant.Application`)
+
+- Add `IDocumentIngestionService` port:
+  ```csharp
+  Task<Guid> IngestAsync(string name, Stream content, CancellationToken ct = default);
+  Task DeleteAsync(Guid documentId, CancellationToken ct = default);
+  ```
+- Implement `DocumentIngestionService` in `Application.Services`:
+  1. Read stream to string (UTF-8 plain text for v1; PDF text extraction deferred).
+  2. Split into overlapping chunks using `RagOptions.ChunkSize` / `RagOptions.ChunkOverlap`.
+  3. For each chunk, call `IEmbeddingClient.EmbedAsync` then `IVectorStore.UpsertAsync`.
+  4. Persist the `Document` entity and return its `Id`.
+
+#### 9.6 — Application: RAG context provider
+
+- Add `IRagContextProvider` port:
+  ```csharp
+  Task<string?> GetContextAsync(string query, CancellationToken ct = default);
+  ```
+- Implement `RagContextProvider` in `Application.Services`:
+  - Embeds `query` via `IEmbeddingClient`.
+  - Calls `IVectorStore.SearchAsync` with `RagOptions.TopK` and `MinSimilarityScore`.
+  - If no chunks exceed the threshold, returns `null`.
+  - Formats chunks as:
+    ```
+    ## Knowledge Base
+    [Source: <DocumentName>, chunk <N>]
+    <Content>
+    ---
+    ```
+
+#### 9.7 — Wire RAG into ChatService
+
+- Inject `IRagContextProvider` into `ChatService`.
+- Before prompt assembly, call `GetContextAsync(request.UserMessage)`.
+- Extend `ConversationContext` (or pass directly to `PromptRenderer`) with a `RagContext` field alongside the existing `SapDataContext`.
+- Update `IPromptRenderer` / `PromptRenderer` to include the RAG block in the assembled prompt when non-null.
+- Update `system.txt` prompt template to include a `## Knowledge Base` section placeholder.
+- Set `SendMessageResponse.IsGroundedBySap` precedence: SAP grounding wins; consider adding `IsGroundedByRag` flag for UI badge.
+
+#### 9.8 — API surface (`SapAiAssistant.Api`)
+
+- `POST /api/documents` — accept `multipart/form-data` (`name` + `file`), call `IDocumentIngestionService.IngestAsync`, return `{ documentId, name, chunkCount }`.
+- `GET /api/documents` — list all documents.
+- `DELETE /api/documents/{id}` — delete document and its chunks.
+
+#### 9.9 — Web UI (`SapAiAssistant.Web`)
+
+- Extend `ApiClient` with `UploadDocumentAsync`, `GetDocumentsAsync`, `DeleteDocumentAsync`.
+- Add a `KnowledgeBaseState` scoped service (or extend `ChatState`) tracking the document list.
+- Add `DocumentUpload.razor`: file input (`accept=".txt"`), upload button, progress/error feedback.
+- Add `DocumentList.razor`: list documents by name, show chunk count, delete button.
+- Add a collapsible "Knowledge Base" section at the bottom of the sidebar beneath the conversation list.
+- Show a `RAG` badge on assistant messages when `IsGroundedByRag` is true (mirroring the existing `SAP` badge).
+
+#### 9.10 — Tests
+
+- Unit test `DocumentIngestionService` chunking: verify overlap, chunk count for known input sizes.
+- Unit test `RagContextProvider`: returns `null` when all similarity scores are below threshold.
+- Unit test `ChatService`: when `IRagContextProvider` returns context, it is forwarded to `IPromptRenderer`.
+- Integration test `SqliteVectorStore`: upsert a chunk, embed a matching query, assert it is returned in top-1.
+
+#### Technology notes
+
+- **Embedding model**: `nomic-embed-text` via Ollama — lightweight (274 MB), 768-dimensional, good semantic quality for English and mixed-language SAP content.
+- **Vector store v1**: cosine similarity in C# over SQLite rows — zero extra infrastructure, consistent with the existing SQLite commitment. Swap for `sqlite-vec` extension or Qdrant when the corpus exceeds ~10 000 chunks.
+- **Document types v1**: plain text (`.txt`) only. PDF ingestion (via `UglyToad.PdfPig`) deferred to a follow-up.
+- **Scalability note**: keep `RagOptions.TopK` ≤ 5 to stay within typical context windows at v1; raise with care for larger models.
+
 ## Initial Scope Decisions
 
 - Included in v1: clean architecture scaffold, Ollama-first LLM path, SQLite, in-memory cache, Service Layer-first SAP boundary, Blazor Web chat UI, prompt management, conversation memory abstractions, and SAP B1 developer assistance with C# code generation.
 - Deferred from v1: DI API implementation, SignalR or token streaming, production auth, Redis, vector search, multi-tenancy, broad write-capable SAP commands.
 - Phase 8 (model selector) is promoted from deferred to active: adds `gemma4:latest` as a second Ollama model, exposes `GET /api/models`, and adds a dropdown in the Blazor UI. No new LLM provider abstraction is needed for this scope — both models run through the existing `OllamaClient`.
+- Phase 9 (RAG) is planned as the next active phase: adds knowledge base document upload, Ollama-based embedding (`nomic-embed-text`), cosine-similarity vector search in SQLite, and prompt injection of retrieved chunks.
 - Recommendation: keep SAP operations read-only until the prompt and orchestration flow is stable.
 
 ## Practical Recommendations
