@@ -1,6 +1,12 @@
 # SAP Business One AI Assistant
 
-A clean-architecture .NET 10 AI assistant for SAP Business One, powered by a local [Ollama](https://ollama.com) LLM. Supports two modes — a **business-user** mode for SAP data lookup and Q&A, and a **developer** mode for SAP B1 C# code generation.
+A clean-architecture .NET 10 AI assistant for SAP Business One, powered by local [Ollama](https://ollama.com) LLMs. Supports two modes — a **business-user** mode for SAP data lookup and Q&A, and a **developer** mode for SAP B1 C# code generation.
+
+**Current capabilities**
+- Chat with multiple locally-running Ollama models (switchable per message via a UI dropdown)
+- Live SAP Business One data grounding via Service Layer (business partners, items, orders, invoices)
+- Persistent conversation history in SQLite
+- RAG knowledge base: upload plain-text documents, retrieve relevant chunks at query time, inject into prompt
 
 ## Architecture
 
@@ -31,10 +37,12 @@ Dependency flow: `Domain ← Application ← {Api, Web}`, `Domain ← Infrastruc
 | Ollama | latest |
 | SAP Business One Service Layer | optional (chat degrades gracefully without it) |
 
-Pull the default model:
+Pull the required models:
 
 ```bash
 ollama pull llama3
+ollama pull gemma4           # second chat model
+ollama pull nomic-embed-text # required for RAG document embedding
 ```
 
 ## Getting Started
@@ -63,7 +71,18 @@ Edit `SapAiAssistant.Api/appsettings.json` (or use environment variables / user 
   "Ollama": {
     "BaseUrl": "http://localhost:11434",
     "Model": "llama3",
-    "TimeoutMinutes": 10
+    "TimeoutMinutes": 10,
+    "AvailableModels": ["llama3", "gemma4:latest"]
+  },
+  "Embedding": {
+    "Model": "nomic-embed-text",
+    "BaseUrl": "http://localhost:11434"
+  },
+  "Rag": {
+    "TopK": 3,
+    "MinSimilarityScore": 0.65,
+    "ChunkSize": 2000,
+    "ChunkOverlap": 200
   },
   "Sap": {
     "ServiceLayerBaseUrl": "https://your-sap-server:50000/b1s/v1",
@@ -90,6 +109,10 @@ SAP configuration is optional. When `ServiceLayerBaseUrl` is blank the SAP healt
 | `POST` | `/api/chat/messages` | Send a message and receive an assistant reply |
 | `GET` | `/api/chat/conversations` | List all saved conversations |
 | `GET` | `/api/chat/conversations/{id}` | Get a single conversation with messages |
+| `GET` | `/api/models` | List available Ollama models |
+| `POST` | `/api/documents` | Upload a document for RAG ingestion (`multipart/form-data`) |
+| `GET` | `/api/documents` | List all ingested documents |
+| `DELETE` | `/api/documents/{id}` | Delete a document and its chunks |
 | `GET` | `/health` | Full JSON health report (Ollama, SQLite, SAP) |
 | `GET` | `/health/live` | Lightweight liveness probe |
 | `GET` | `/health/sap` | SAP Service Layer availability check |
@@ -109,6 +132,7 @@ curl -X POST http://localhost:5062/api/chat/messages \
 | `userMessage` | `string` | The user's message |
 | `mode` | `string` | `BusinessUser` or `Developer` |
 | `sessionId` | `guid?` | Omit to start a new conversation |
+| `model` | `string?` | Ollama model name, e.g. `gemma4:latest`. Omit to use the server default |
 
 **Response**
 
@@ -118,7 +142,8 @@ curl -X POST http://localhost:5062/api/chat/messages \
   "messageId": "...",
   "assistantMessage": "...",
   "isGroundedBySap": false,
-  "mode": "BusinessUser"
+  "mode": "BusinessUser",
+  "model": "llama3"
 }
 ```
 
@@ -130,6 +155,40 @@ curl -X POST http://localhost:5062/api/chat/messages \
 |---|---|
 | `BusinessUser` | Business Q&A — resolves business partner, item, sales order, and invoice lookups from SAP and injects the data into the prompt |
 | `Developer` | C# code generation — produces SAP B1 SDK / Service Layer code with explanation separated from code blocks |
+
+## Model Selection
+
+The UI toolbar shows a **Model** dropdown populated from `GET /api/models`. Select any available Ollama model before sending a message; the choice travels with the request and is echoed in the response.
+
+To add or remove models, edit `appsettings.json`:
+
+```json
+"Ollama": {
+  "AvailableModels": ["llama3", "gemma4:latest"]
+}
+```
+
+## RAG — Knowledge Base
+
+Upload plain-text documents (`.txt`) through the **Knowledge Base** panel in the sidebar. The assistant will automatically retrieve the most relevant passages at query time and include them in the prompt.
+
+**How it works:**
+
+1. On upload, the document is split into overlapping text chunks.
+2. Each chunk is embedded using `nomic-embed-text` via Ollama.
+3. Embeddings and chunk text are stored in SQLite alongside the conversation data.
+4. On each chat message, the user's query is embedded and cosine similarity is used to find the top-K most relevant chunks.
+5. Matching chunks are injected into the prompt as a `## Knowledge Base` block before the LLM generates a response.
+
+**Configuration** (`appsettings.json`):
+
+| Key | Default | Description |
+|---|---|---|
+| `Rag:TopK` | `3` | Maximum number of chunks injected per message |
+| `Rag:MinSimilarityScore` | `0.65` | Minimum cosine similarity to include a chunk |
+| `Rag:ChunkSize` | `2000` | Characters per chunk |
+| `Rag:ChunkOverlap` | `200` | Overlapping characters between consecutive chunks |
+| `Embedding:Model` | `nomic-embed-text` | Ollama embedding model |
 
 ## Prompt Templates
 
@@ -188,24 +247,29 @@ SBO AI Assistant/
 │   ├── Interfaces/
 │   └── Services/
 │       ├── ChatService.cs
+│       ├── DocumentIngestionService.cs  # (Phase 9)
+│       ├── RagContextProvider.cs        # (Phase 9)
 │       └── SapContextBuilder.cs
 ├── SapAiAssistant.Domain/           # Core domain
-│   ├── Entities/
+│   ├── Abstractions/                # ILlmClient, IEmbeddingClient, IVectorStore …
+│   ├── Entities/                    # ChatSession, ChatMessage, Document, DocumentChunk
 │   └── ValueObjects/
 ├── SapAiAssistant.Infrastructure/   # Adapters
+│   ├── Configuration/               # OllamaOptions, EmbeddingOptions, RagOptions …
 │   ├── HealthChecks/
 │   ├── IntentDetection/
-│   ├── LLM/
+│   ├── LLM/                         # OllamaClient, OllamaEmbeddingClient
 │   ├── Memory/
 │   ├── Migrations/
-│   ├── Persistence/
+│   ├── Persistence/                 # AppDbContext, SqliteConversationRepository, SqliteVectorStore
 │   ├── PromptManagement/
 │   └── SapIntegration/
 ├── SapAiAssistant.Web/              # Blazor Server UI
 │   ├── Components/
-│   │   ├── Chat/
+│   │   ├── Chat/                    # ChatInput, MessageThread, ConversationList, ModelSelector
+│   │   ├── KnowledgeBase/           # DocumentUpload, DocumentList  (Phase 9)
 │   │   └── Pages/
-│   ├── Services/
+│   ├── Services/                    # ChatState, ApiClient, KnowledgeBaseState (Phase 9)
 │   └── wwwroot/
 ├── SapAiAssistant.Tests.Unit/
 └── SapAiAssistant.Tests.Integration/
@@ -220,6 +284,8 @@ Every request carries an `X-Correlation-Id` header (generated if not supplied by
 - SAP DI API adapter (Windows-only, parallel namespace ready)
 - Token streaming / SignalR for real-time LLM output
 - Production authentication
-- Redis cache and vector search for semantic retrieval
+- Redis cache
+- PDF document ingestion (via `UglyToad.PdfPig`)
+- `sqlite-vec` or Qdrant for large-corpus vector search (>10 000 chunks)
 - Multi-tenancy
 - Write-capable SAP commands (currently read-only by design)
