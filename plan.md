@@ -123,21 +123,115 @@ Application <- Infrastructure
 3. Add contract-style tests around the SAP gateway using mocked Service Layer responses.
 4. Run one local end-to-end smoke path from Blazor to API to Application to Ollama to persistence.
 
-### Phase 8: LLM Provider Selector (Deferred)
+### Phase 8: Model Selector
 
-1. Introduce an `ILlmProviderRegistry` in `Application` that holds a list of available provider descriptors (name, model ID, base URL).
-2. Extend `OllamaOptions` (or add a sibling `LlmProviderOptions` collection) so multiple Ollama-compatible endpoints and model names can be configured in `appsettings.json`.
-3. Expose a `GET /api/llm/providers` endpoint returning the available providers so the Web UI can populate the dropdown without hard-coding choices.
-4. Add a `ProviderId` / `ModelId` field to `SendMessageRequest` so the selected model travels with each chat request.
-5. Modify `ChatService` to resolve the right `ILlmClient` instance (or pass the selected base URL / model to the existing Ollama client) based on the incoming `ProviderId`.
-6. In `ChatPage.razor`, place a compact dropdown next to the chat input bar listing available models. The selected value is held in `ChatState` and sent with every message.
-7. Persist the model choice per `ChatSession` so that reopening a conversation remembers which model was used.
-8. Add unit tests for provider resolution and model-selection propagation through `ChatService`.
+Allows users to choose which Ollama model handles their chat session.
+Initial supported models: `llama3` (existing default) and `gemma4:e4b` (new).
+
+#### 8.1 — Configuration (`SapAiAssistant.Infrastructure`)
+
+- Add `AvailableModels` to `OllamaOptions`:
+  ```csharp
+  public List<string> AvailableModels { get; set; } = ["llama3", "gemma4:e4b"];
+  ```
+- Populate both entries in `appsettings.json` under the existing `"Ollama"` section:
+  ```json
+  "Ollama": {
+    "BaseUrl": "http://localhost:11434",
+    "Model": "llama3",
+    "TimeoutMinutes": 10,
+    "AvailableModels": ["llama3", "gemma4:e4b"]
+  }
+  ```
+
+#### 8.2 — Domain contract (`SapAiAssistant.Domain`)
+
+- Add an optional `model` parameter to `ILlmClient.GenerateAsync`:
+  ```csharp
+  Task<string> GenerateAsync(string prompt, string? model = null, CancellationToken cancellationToken = default);
+  ```
+  A `null` value means "use the server-side default from `OllamaOptions.Model`".
+
+#### 8.3 — Infrastructure (`SapAiAssistant.Infrastructure`)
+
+- Update `OllamaClient.GenerateAsync` to accept the new `model` parameter:
+  ```csharp
+  var modelToUse = model ?? _options.Model;
+  var requestBody = new OllamaRequest(modelToUse, prompt, Stream: false);
+  ```
+
+#### 8.4 — Application DTOs and service (`SapAiAssistant.Application`)
+
+- Add `string? Model` to `SendMessageRequest`:
+  ```csharp
+  public sealed record SendMessageRequest(
+      Guid? SessionId,
+      AssistantMode Mode,
+      string UserMessage,
+      string? Model       // null → use server default
+  );
+  ```
+- Add `string Model` to `SendMessageResponse` so the UI can show which model answered:
+  ```csharp
+  public sealed record SendMessageResponse(
+      Guid SessionId,
+      Guid MessageId,
+      string AssistantMessage,
+      bool IsGroundedBySap,
+      AssistantMode Mode,
+      string Model
+  );
+  ```
+- In `ChatService.SendMessageAsync`, forward `request.Model` to `_llmClient.GenerateAsync` and capture the resolved model name for the response.
+
+#### 8.5 — API surface (`SapAiAssistant.Api`)
+
+- Add a new minimal-API endpoint:
+  ```
+  GET /api/models
+  ```
+  Returns the `AvailableModels` list directly from `OllamaOptions` so the Web layer never hard-codes model names.
+  ```csharp
+  app.MapGet("/api/models", (IOptions<OllamaOptions> opts) =>
+      Results.Ok(opts.Value.AvailableModels))
+  .WithName("GetModels")
+  .WithTags("Models");
+  ```
+
+#### 8.6 — Web client (`SapAiAssistant.Web`)
+
+- Add `GetModelsAsync()` to `ApiClient`:
+  ```csharp
+  public async Task<IReadOnlyList<string>> GetModelsAsync(CancellationToken ct = default)
+      => await _http.GetFromJsonAsync<List<string>>("/api/models", ct) ?? [];
+  ```
+- Extend `ChatState`:
+  - Add `IReadOnlyList<string> AvailableModels` (populated at startup).
+  - Add `string SelectedModel` (defaults to first in list).
+  - Add `void SelectModel(string model)` mutator that calls `Notify()`.
+  - Add `string? Model` to the `SendMessageRequest` construction inside `SendMessageAsync`.
+  - Load models in `LoadConversationsAsync` (or a dedicated `InitAsync`).
+- Update `ChatInput.razor` to emit the model name alongside the message text (or hold it in `ChatState` and let the page compose the request).
+
+#### 8.7 — UI component
+
+- Add a `<ModelSelector>` Blazor component or embed a `<select>` directly in the chat toolbar/sidebar:
+  - Renders a `<select>` bound to `ChatState.SelectedModel`.
+  - Disabled while `ChatState.IsLoading` is `true`.
+  - Placed above or next to the chat input bar.
+- When the user changes the selected model, call `ChatState.SelectModel(value)`. The next sent message will use the new selection.
+
+#### 8.8 — Tests
+
+- Unit test `OllamaClient` with an explicit model name override and verify the serialized request uses that name.
+- Unit test `ChatService` to confirm the resolved model name is included in `SendMessageResponse`.
+- Update existing `SendMessageRequest` unit tests to account for the new `Model` property.
 
 ## Initial Scope Decisions
 
 - Included in v1: clean architecture scaffold, Ollama-first LLM path, SQLite, in-memory cache, Service Layer-first SAP boundary, Blazor Web chat UI, prompt management, conversation memory abstractions, and SAP B1 developer assistance with C# code generation.
-- Deferred from v1: DI API implementation, SignalR or token streaming, production auth, Redis, vector search, multi-tenancy, broad write-capable SAP commands, and multi-LLM provider selection (Phase 8).
+- Deferred from v1: DI API implementation, SignalR or token streaming, production auth, Redis, vector search, multi-tenancy, broad write-capable SAP commands.
+- Phase 8 (model selector) is promoted from deferred to active: adds `gemma4:e4b` as a second Ollama model, exposes `GET /api/models`, and adds a dropdown in the Blazor UI. No new LLM provider abstraction is needed for this scope — both models run through the existing `OllamaClient`.
 - Recommendation: keep SAP operations read-only until the prompt and orchestration flow is stable.
 
 ## Practical Recommendations
