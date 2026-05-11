@@ -20,7 +20,7 @@ public sealed class ChatState
     public bool IsLoading { get; private set; }
     public string? ErrorMessage { get; private set; }
 
-    public IReadOnlyList<string> AvailableModels { get; private set; } = ["llama3", "gemma4:e4b"];
+    public IReadOnlyList<string> AvailableModels { get; private set; } = ["llama3", "gemma4:latest"];
     public string SelectedModel { get; private set; } = "llama3";
 
     public event Action? OnChange;
@@ -43,7 +43,7 @@ public sealed class ChatState
     }
 
     // Fallback list used when the API endpoint is unreachable at startup.
-    private static readonly IReadOnlyList<string> _defaultModels = ["llama3", "gemma4:e4b"];
+    private static readonly IReadOnlyList<string> _defaultModels = ["llama3", "gemma4:latest"];
 
     public async Task LoadModelsAsync(CancellationToken ct = default)
     {

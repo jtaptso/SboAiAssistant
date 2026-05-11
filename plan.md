@@ -126,13 +126,13 @@ Application <- Infrastructure
 ### Phase 8: Model Selector
 
 Allows users to choose which Ollama model handles their chat session.
-Initial supported models: `llama3` (existing default) and `gemma4:e4b` (new).
+Initial supported models: `llama3` (existing default) and `gemma4:latest` (new).
 
 #### 8.1 — Configuration (`SapAiAssistant.Infrastructure`)
 
 - Add `AvailableModels` to `OllamaOptions`:
   ```csharp
-  public List<string> AvailableModels { get; set; } = ["llama3", "gemma4:e4b"];
+  public List<string> AvailableModels { get; set; } = ["llama3", "gemma4:latest"];
   ```
 - Populate both entries in `appsettings.json` under the existing `"Ollama"` section:
   ```json
@@ -140,7 +140,7 @@ Initial supported models: `llama3` (existing default) and `gemma4:e4b` (new).
     "BaseUrl": "http://localhost:11434",
     "Model": "llama3",
     "TimeoutMinutes": 10,
-    "AvailableModels": ["llama3", "gemma4:e4b"]
+    "AvailableModels": ["llama3", "gemma4:latest"]
   }
   ```
 
@@ -231,7 +231,7 @@ Initial supported models: `llama3` (existing default) and `gemma4:e4b` (new).
 
 - Included in v1: clean architecture scaffold, Ollama-first LLM path, SQLite, in-memory cache, Service Layer-first SAP boundary, Blazor Web chat UI, prompt management, conversation memory abstractions, and SAP B1 developer assistance with C# code generation.
 - Deferred from v1: DI API implementation, SignalR or token streaming, production auth, Redis, vector search, multi-tenancy, broad write-capable SAP commands.
-- Phase 8 (model selector) is promoted from deferred to active: adds `gemma4:e4b` as a second Ollama model, exposes `GET /api/models`, and adds a dropdown in the Blazor UI. No new LLM provider abstraction is needed for this scope — both models run through the existing `OllamaClient`.
+- Phase 8 (model selector) is promoted from deferred to active: adds `gemma4:latest` as a second Ollama model, exposes `GET /api/models`, and adds a dropdown in the Blazor UI. No new LLM provider abstraction is needed for this scope — both models run through the existing `OllamaClient`.
 - Recommendation: keep SAP operations read-only until the prompt and orchestration flow is stable.
 
 ## Practical Recommendations
