@@ -27,17 +27,17 @@ public sealed class DocumentIngestionService : IDocumentIngestionService
         using var reader = new StreamReader(content, Encoding.UTF8);
         var text = await reader.ReadToEndAsync(ct);
 
-        var document = Document.Create(name);
+        var documentId = Guid.NewGuid();
         var chunks = SplitIntoChunks(text, _settings.ChunkSize, _settings.ChunkOverlap);
 
         for (int i = 0; i < chunks.Count; i++)
         {
             var embedding = await _embeddingClient.EmbedAsync(chunks[i], ct);
-            var chunk = DocumentChunk.Create(document.Id, name, i, chunks[i], embedding);
+            var chunk = DocumentChunk.Create(documentId, name, i, chunks[i], embedding);
             await _vectorStore.UpsertAsync(chunk, ct);
         }
 
-        document.SetChunkCount(chunks.Count);
+        var document = Document.Create(name, chunks.Count, documentId);
         await _vectorStore.UpsertDocumentAsync(document, ct);
 
         return document.Id;

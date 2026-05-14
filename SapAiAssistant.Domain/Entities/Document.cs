@@ -9,16 +9,14 @@ public sealed class Document
 
     private Document() { Name = string.Empty; } // EF Core
 
-    public static Document Create(string name)
+    public static Document Create(string name, int chunkCount, Guid? id = null)
     {
         return new Document
         {
-            Id = Guid.NewGuid(),
+            Id = id ?? Guid.NewGuid(),
             Name = name,
             UploadedAt = DateTime.UtcNow,
-            ChunkCount = 0
+            ChunkCount = chunkCount
         };
     }
-
-    public void SetChunkCount(int count) => ChunkCount = count;
 }

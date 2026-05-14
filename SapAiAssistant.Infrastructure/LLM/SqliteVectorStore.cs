@@ -20,10 +20,8 @@ public sealed class SqliteVectorStore : IVectorStore
         if (existing is null)
             _db.Documents.Add(document);
         else
-        {
-            existing.SetChunkCount(document.ChunkCount);
-            _db.Documents.Update(existing);
-        }
+            _db.Entry(existing).CurrentValues.SetValues(document);
+
         await _db.SaveChangesAsync(ct);
     }
 
