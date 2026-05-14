@@ -2,6 +2,7 @@ using System.Text;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using SapAiAssistant.Application.Interfaces;
 using SapAiAssistant.Application.Services;
 using SapAiAssistant.Domain.Abstractions;
 using SapAiAssistant.Domain.Entities;
@@ -24,7 +25,14 @@ public sealed class DocumentIngestionServiceTests
         });
         _embeddingClient.EmbedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new float[] { 0.1f, 0.2f, 0.3f });
-        return new DocumentIngestionService(_embeddingClient, _vectorStore, settings);
+
+        // Plain-text extractor stub that reads UTF-8 from the stream
+        var textExtractor = Substitute.For<IDocumentTextExtractor>();
+        textExtractor.CanHandle(Arg.Any<string>()).Returns(true);
+        textExtractor.ExtractTextAsync(Arg.Any<Stream>(), Arg.Any<CancellationToken>())
+            .Returns(ci => new StreamReader(ci.Arg<Stream>(), Encoding.UTF8).ReadToEndAsync());
+
+        return new DocumentIngestionService(_embeddingClient, _vectorStore, settings, [textExtractor]);
     }
 
     [Fact]

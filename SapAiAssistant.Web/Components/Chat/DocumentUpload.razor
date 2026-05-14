@@ -2,8 +2,8 @@
 @inject ChatState State
 
 <div class="doc-upload">
-    <label class="doc-upload-label">Upload document (.txt)</label>
-    <InputFile OnChange="OnFileSelected" accept=".txt" disabled="@_uploading" />
+    <label class="doc-upload-label">Upload document (.txt, .pdf)</label>
+    <InputFile OnChange="OnFileSelected" accept=".txt,.pdf" disabled="@_uploading" />
     @if (_uploading)
     {
         <span class="doc-upload-status">Uploading…</span>

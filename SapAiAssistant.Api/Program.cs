@@ -117,6 +117,10 @@ app.MapPost("/api/documents", async (
     if (file is null || file.Length == 0)
         return Results.BadRequest("A non-empty file is required");
 
+    var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+    if (ext is not (".txt" or ".pdf"))
+        return Results.BadRequest("Only .txt and .pdf files are supported");
+
     await using var stream = file.OpenReadStream();
     var documentId = await ingestion.IngestAsync(name, stream, ct);
 

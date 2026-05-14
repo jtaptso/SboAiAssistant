@@ -1,4 +1,3 @@
-using System.Text;
 using Microsoft.Extensions.Options;
 using SapAiAssistant.Application.Interfaces;
 using SapAiAssistant.Domain.Abstractions;
@@ -11,21 +10,26 @@ public sealed class DocumentIngestionService : IDocumentIngestionService
     private readonly IEmbeddingClient _embeddingClient;
     private readonly IVectorStore _vectorStore;
     private readonly RagSettings _settings;
+    private readonly IEnumerable<IDocumentTextExtractor> _extractors;
 
     public DocumentIngestionService(
         IEmbeddingClient embeddingClient,
         IVectorStore vectorStore,
-        IOptions<RagSettings> settings)
+        IOptions<RagSettings> settings,
+        IEnumerable<IDocumentTextExtractor> extractors)
     {
         _embeddingClient = embeddingClient;
         _vectorStore = vectorStore;
         _settings = settings.Value;
+        _extractors = extractors;
     }
 
     public async Task<Guid> IngestAsync(string name, Stream content, CancellationToken ct = default)
     {
-        using var reader = new StreamReader(content, Encoding.UTF8);
-        var text = await reader.ReadToEndAsync(ct);
+        var extractor = _extractors.FirstOrDefault(e => e.CanHandle(name))
+            ?? throw new NotSupportedException($"No text extractor registered for '{Path.GetExtension(name)}'.");
+
+        var text = await extractor.ExtractTextAsync(content, ct);
 
         var documentId = Guid.NewGuid();
         var chunks = SplitIntoChunks(text, _settings.ChunkSize, _settings.ChunkOverlap);

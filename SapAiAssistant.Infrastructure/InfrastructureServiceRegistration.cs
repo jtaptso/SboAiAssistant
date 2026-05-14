@@ -6,6 +6,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using SapAiAssistant.Application.Interfaces;
 using SapAiAssistant.Domain.Abstractions;
 using SapAiAssistant.Infrastructure.Configuration;
+using SapAiAssistant.Infrastructure.DocumentProcessing;
 using SapAiAssistant.Infrastructure.HealthChecks;
 using SapAiAssistant.Infrastructure.IntentDetection;
 using SapAiAssistant.Infrastructure.LLM;
@@ -58,6 +59,10 @@ public static class InfrastructureServiceRegistration
             opt.UseSqlite($"Data Source={dbPath}"));
         services.AddScoped<IConversationRepository, SqliteConversationRepository>();
         services.AddScoped<IVectorStore, SqliteVectorStore>();
+
+        // Document text extractors (order matters — first match wins)
+        services.AddSingleton<IDocumentTextExtractor, PlainTextExtractor>();
+        services.AddSingleton<IDocumentTextExtractor, PdfTextExtractor>();
 
         // Prompt management
         services.AddSingleton<IPromptRepository, FilePromptRepository>();
