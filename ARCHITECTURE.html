@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAP B1 AI Assistant — Architecture Guide</title>
+  <style>
+    :root {
+      --bg:          #0f1117;
+      --surface:     #1a1d27;
+      --surface2:    #22263a;
+      --border:      #2e3250;
+      --accent:      #5b8df6;
+      --accent2:     #7c5bf6;
+      --green:       #3ecf8e;
+      --amber:       #f59e0b;
+      --red:         #f87171;
+      --text:        #e2e6f3;
+      --muted:       #8891b4;
+      --code-bg:     #141720;
+      --radius:      12px;
+      --radius-sm:   6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.75;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 32px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(91,141,246,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    header .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(91,141,246,.12);
+      border: 1px solid rgba(91,141,246,.3);
+      border-radius: 100px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+    header h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, #e2e6f3 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 17px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 14px 12px;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color .2s, border-color .2s;
+    }
+    nav a:hover { color: var(--text); border-color: var(--border); }
+
+    /* ── LAYOUT ── */
+    .page { max-width: 920px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    /* ── SECTIONS ── */
+    section { margin-bottom: 64px; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      margin-bottom: 20px;
+      color: #fff;
+    }
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 32px 0 12px;
+      color: var(--text);
+    }
+    p { color: var(--muted); margin-bottom: 16px; }
+    p strong { color: var(--text); font-weight: 600; }
+    p em { color: var(--accent); font-style: normal; }
+
+    /* ── CALLOUT ── */
+    .callout {
+      background: rgba(91,141,246,.07);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 14px 20px;
+      margin: 0 0 20px;
+      color: #b5c5f5;
+      font-size: 15px;
+    }
+
+    /* ── CODE ── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px 22px;
+      overflow-x: auto;
+      margin: 16px 0 24px;
+      font-size: 13.5px;
+      line-height: 1.65;
+    }
+    code {
+      font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      color: #a5b4fc;
+    }
+    pre code { color: #c9d1f5; }
+
+    /* syntax highlight helpers */
+    .kw  { color: #c792ea; }
+    .ty  { color: #82aaff; }
+    .st  { color: #c3e88d; }
+    .cm  { color: #546e7a; font-style: italic; }
+    .nm  { color: #f78c6c; }
+    .op  { color: #89ddff; }
+
+    /* inline code */
+    p code, li code, td code, .callout code {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: .88em;
+      color: #a5b4fc;
+    }
+
+    /* ── PROJECT CARDS ── */
+    .project-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .project-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      transition: border-color .2s, transform .2s;
+    }
+    .project-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .project-card .tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .tag-domain  { background: rgba(62,207,142,.12); color: var(--green); }
+    .tag-app     { background: rgba(91,141,246,.12); color: var(--accent); }
+    .tag-infra   { background: rgba(245,158,11,.12); color: var(--amber); }
+    .tag-api     { background: rgba(124,91,246,.12); color: var(--accent2); }
+    .tag-web     { background: rgba(248,113,113,.12); color: var(--red); }
+    .project-card h4 { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 6px; font-family: monospace; }
+    .project-card p  { font-size: 13.5px; margin: 0; }
+
+    /* ── DEP FLOW ── */
+    .dep-flow {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      margin: 24px 0;
+      row-gap: 16px;
+    }
+    .dep-node {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: monospace;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .dep-arrow {
+      color: var(--accent);
+      font-size: 18px;
+      padding: 0 10px;
+      line-height: 1;
+    }
+    .dep-rule {
+      width: 100%;
+      text-align: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .dep-rule strong { color: var(--red); }
+
+    /* ── FLOW STEPS ── */
+    .flow {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 24px 0;
+    }
+    .flow-header {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 22px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .04em;
+    }
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+    .flow-step:last-child { border-bottom: none; }
+    .flow-step:hover { background: rgba(255,255,255,.02); }
+    .step-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: rgba(91,141,246,.15);
+      border: 1px solid rgba(91,141,246,.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .step-body { flex: 1; }
+    .step-body strong { color: var(--text); display: block; margin-bottom: 3px; font-size: 14px; }
+    .step-body span { font-size: 13.5px; color: var(--muted); }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; margin: 20px 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead th {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+    tbody td {
+      border: 1px solid var(--border);
+      padding: 11px 16px;
+      color: var(--muted);
+      vertical-align: top;
+    }
+    tbody tr:hover td { background: rgba(255,255,255,.02); }
+    tbody td:first-child { color: var(--text); font-weight: 600; }
+
+    /* ── PATTERN CARDS ── */
+    .pattern-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 26px 28px;
+      margin-bottom: 20px;
+    }
+    .pattern-card h3 { margin-top: 0; }
+    .pattern-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    /* ── INTERFACE LIST ── */
+    .iface-list { list-style: none; margin: 14px 0; display: flex; flex-direction: column; gap: 8px; }
+    .iface-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .iface-list li::before {
+      content: '→';
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .iface-list code { margin-right: 4px; }
+    .iface-list span { color: var(--muted); }
+
+    /* ── LIFETIME CARDS ── */
+    .lifetime-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+    .lifetime-card {
+      flex: 1;
+      min-width: 160px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+    }
+    .lifetime-card .lt-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 4px;
+    }
+    .lt-singleton { color: var(--green); }
+    .lt-scoped    { color: var(--accent); }
+    .lt-transient { color: var(--amber); }
+    .lifetime-card p { font-size: 12.5px; margin: 0; }
+
+    /* ── RAG STEPS ── */
+    .rag-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 20px 0; }
+    .rag-step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+    }
+    .rag-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 auto 10px;
+    }
+    .rag-step h4 { font-size: 14px; color: #fff; margin-bottom: 6px; }
+    .rag-step p  { font-size: 12.5px; margin: 0; }
+
+    /* ── QA CARDS ── */
+    .qa-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 26px;
+      margin-bottom: 14px;
+    }
+    .qa-q {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .qa-q .q-icon {
+      flex-shrink: 0;
+      background: rgba(91,141,246,.12);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-top: 2px;
+    }
+    .qa-q strong { color: var(--text); font-size: 15px; }
+    .qa-a { color: var(--muted); font-size: 14px; padding-left: 34px; }
+
+    /* ── QUOTE LIST ── */
+    .quote-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+    .quote-list li {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 12px 18px;
+      font-size: 14px;
+      color: #b5f5d8;
+      font-style: italic;
+    }
+
+    /* ── VOCAB TABLE ── */
+    .vocab-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .vocab-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .vocab-term {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 110px;
+      flex-shrink: 0;
+    }
+    .vocab-def { font-size: 13px; color: var(--muted); }
+
+    /* ── MIDDLEWARE ── */
+    .mw-pipeline {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 20px 0;
+    }
+    .mw-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+    .mw-item:last-child { border-bottom: none; }
+    .mw-badge {
+      flex-shrink: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .mw-badge-1 { color: var(--red); border-color: rgba(248,113,113,.3); }
+    .mw-badge-2 { color: var(--amber); border-color: rgba(245,158,11,.3); }
+    .mw-badge-3 { color: var(--green); border-color: rgba(62,207,142,.3); }
+    .mw-item strong { display: block; color: var(--text); font-size: 14px; margin-bottom: 4px; }
+    .mw-item p { margin: 0; font-size: 13.5px; }
+
+    /* ── TESTING ── */
+    .test-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+    @media (max-width: 600px) { .test-row { grid-template-columns: 1fr; } }
+    .test-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+    }
+    .test-card .count {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .test-card .type { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 14px; }
+    .test-card p { font-size: 13.5px; margin-bottom: 10px; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    @media (max-width: 640px) {
+      header { padding: 36px 20px 32px; }
+      .page { padding: 32px 16px 60px; }
+      .dep-flow { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════ HEADER ════════════════ -->
+<header>
+  <div class="badge">📐 Architecture Guide</div>
+  <h1>SAP B1 AI Assistant</h1>
+  <p>A beginner-friendly walkthrough of the architecture, design patterns, and technical decisions — written to prepare you for a developer interview.</p>
+</header>
+
+<!-- ════════════════ NAV ════════════════ -->
+<nav>
+  <a href="#overview">Overview</a>
+  <a href="#projects">Five Projects</a>
+  <a href="#clean-arch">Clean Architecture</a>
+  <a href="#patterns">Patterns</a>
+  <a href="#flow">Message Flow</a>
+  <a href="#rag">RAG</a>
+  <a href="#persistence">Persistence</a>
+  <a href="#testing">Testing</a>
+  <a href="#middleware">Middleware</a>
+  <a href="#decisions">Decisions</a>
+  <a href="#vocab">Vocabulary</a>
+  <a href="#interview">Interview Lines</a>
+</nav>
+
+<div class="page">
+
+  <!-- ════ OVERVIEW ════ -->
+  <section id="overview">
+    <div class="section-label">01 — Overview</div>
+    <h2>What Does This Project Do?</h2>
+    <p>This is a <strong>chat-based AI assistant for SAP Business One (SAP B1)</strong> — an ERP (Enterprise Resource Planning) system used by businesses to manage customers, inventory, invoices, and sales orders.</p>
+    <p>Instead of navigating through dozens of screens in SAP, a user types a question like <em>"What is the status of sales order 4242?"</em> and the assistant fetches real data from SAP and answers in plain English using a local AI model running through Ollama.</p>
+    <div class="callout">
+      There is also a <strong>Developer Mode</strong> where SAP B1 developers can ask the assistant to generate C# code for SAP B1 integrations — scaffolds, add-on patterns, and Service Layer snippets.
+    </div>
+  </section>
+
+  <!-- ════ FIVE PROJECTS ════ -->
+  <section id="projects">
+    <div class="section-label">02 — Structure</div>
+    <h2>The Five Projects</h2>
+    <p>The solution is split into five separate C# projects. Each one has a single, clearly defined job.</p>
+
+    <div class="project-grid">
+      <div class="project-card">
+        <span class="tag tag-domain">Domain</span>
+        <h4>SapAiAssistant.Domain</h4>
+        <p>The core business rules. Pure C#, no external libraries. Defines what a <code>ChatSession</code>, <code>ChatMessage</code>, <code>SapIntent</code>, etc. <em>are</em>.</p>
+      </div>
+      <div class="project-card">
+        <span class="tag tag-app">Application</span>
+        <h4>SapAiAssistant.Application</h4>
+        <p>Orchestrates use cases. Depends on Domain only. Declares interfaces (ports) for everything it needs but doesn't implement them.</p>
+      </div>
+      <div class="project-card">
+        <span class="tag tag-infra">Infrastructure</span>
+        <h4>SapAiAssistant.Infrastructure</h4>
+        <p>Implements those interfaces: Ollama AI client, SQLite database, SAP Service Layer HTTP calls, file-based prompt loading, vector search.</p>
+      </div>
+      <div class="project-card">
+        <span class="tag tag-api">Api</span>
+        <h4>SapAiAssistant.Api</h4>
+        <p>Minimal REST API endpoints. The composition root — wires all layers together via Dependency Injection.</p>
+      </div>
+      <div class="project-card">
+        <span class="tag tag-web">Web</span>
+        <h4>SapAiAssistant.Web</h4>
+        <p>Blazor Server chat UI. Talks to the API to send and receive messages. The only thing users see.</p>
+      </div>
+    </div>
+
+    <p>The dependency direction is <strong>strict and one-way</strong>:</p>
+    <div class="dep-flow">
+      <div class="dep-node">Domain</div>
+      <div class="dep-arrow">←</div>
+      <div class="dep-node">Application</div>
+      <div class="dep-arrow">←</div>
+      <div class="dep-node">Infrastructure</div>
+      <br/>
+      <div class="dep-rule">
+        <strong>Domain never knows about Infrastructure.</strong> This is the central rule of the entire architecture. The compiler enforces it through project references.
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ CLEAN ARCHITECTURE ════ -->
+  <section id="clean-arch">
+    <div class="section-label">03 — Architecture</div>
+    <h2>Clean Architecture</h2>
+    <p>Popularised by Robert C. Martin ("Uncle Bob"), Clean Architecture structures code so that <strong>business rules stay isolated from external concerns</strong> like databases, HTTP, and UI frameworks.</p>
+    <div class="callout">
+      The core idea: your application's logic should not care whether the data comes from SQLite, PostgreSQL, or a cloud database. It should not care whether the UI is Blazor, React, or a mobile app. These details are <strong>swappable</strong> without touching the business rules.
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Layer</th><th>Project</th><th>Job</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Domain</td>
+            <td><code>SapAiAssistant.Domain</code></td>
+            <td>Defines what entities and value objects <em>are</em>. No external libraries.</td>
+          </tr>
+          <tr>
+            <td>Application</td>
+            <td><code>SapAiAssistant.Application</code></td>
+            <td>Defines what the system can <em>do</em>. Declares interfaces for things it needs. Talks to Domain only.</td>
+          </tr>
+          <tr>
+            <td>Infrastructure</td>
+            <td><code>SapAiAssistant.Infrastructure</code></td>
+            <td>Implements Application interfaces: Ollama, SQLite, SAP HTTP, prompt files.</td>
+          </tr>
+          <tr>
+            <td>API</td>
+            <td><code>SapAiAssistant.Api</code></td>
+            <td>Minimal API endpoints. Composition root that wires everything together.</td>
+          </tr>
+          <tr>
+            <td>Web</td>
+            <td><code>SapAiAssistant.Web</code></td>
+            <td>Blazor Server UI. Calls the API. The only user-facing surface.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ════ PATTERNS ════ -->
+  <section id="patterns">
+    <div class="section-label">04 — Design Patterns</div>
+    <h2>Key Patterns Used</h2>
+
+    <!-- DIP -->
+    <div class="pattern-card">
+      <div class="pattern-icon" style="background:rgba(91,141,246,.12);">🔌</div>
+      <h3>Dependency Inversion Principle (DIP)</h3>
+      <p>This is the "D" in <strong>SOLID</strong> and the reason the architecture works. Application defines an <em>interface</em> (a contract); Infrastructure provides the <em>implementation</em>.</p>
+
+<pre><code><span class="cm">// Application declares what it needs:</span>
+<span class="kw">public interface</span> <span class="ty">ILlmClient</span>
+{
+    <span class="ty">Task</span>&lt;<span class="ty">string</span>&gt; <span class="nm">GenerateAsync</span>(<span class="ty">string</span> prompt, <span class="ty">string</span>? model = <span class="kw">null</span>, ...);
+}
+
+<span class="cm">// Infrastructure provides the real implementation:</span>
+<span class="kw">public sealed class</span> <span class="ty">OllamaClient</span> : <span class="ty">ILlmClient</span> { ... }
+
+<span class="cm">// In tests, a mock is used instead (no real Ollama needed):</span>
+<span class="kw">var</span> llm = Substitute.<span class="nm">For</span>&lt;<span class="ty">ILlmClient</span>&gt;();
+llm.<span class="nm">GenerateAsync</span>(...).Returns(<span class="st">"fake response"</span>);</code></pre>
+
+      <p>The same pattern applies to every external concern:</p>
+      <ul class="iface-list">
+        <li><code>IConversationRepository</code> <span>implemented by <code>SqliteConversationRepository</code></span></li>
+        <li><code>ISapAssistantGateway</code> <span>implemented by <code>ServiceLayerGateway</code> (SAP HTTP calls)</span></li>
+        <li><code>IIntentDetector</code> <span>implemented by <code>KeywordIntentDetector</code></span></li>
+        <li><code>IPromptRenderer</code> <span>implemented by <code>PromptRenderer</code></span></li>
+        <li><code>IEmbeddingClient</code> <span>implemented by <code>OllamaEmbeddingClient</code></span></li>
+        <li><code>IVectorStore</code> <span>implemented by <code>SqliteVectorStore</code></span></li>
+      </ul>
+    </div>
+
+    <!-- Repository -->
+    <div class="pattern-card">
+      <div class="pattern-icon" style="background:rgba(62,207,142,.12);">🗄️</div>
+      <h3>Repository Pattern</h3>
+      <p>A repository hides how data is stored and retrieved. The rest of the application only knows <em>"give me a session by ID"</em> — not whether that means a SQL query, a file read, or an HTTP call.</p>
+
+<pre><code><span class="cm">// Application layer — the contract:</span>
+<span class="kw">public interface</span> <span class="ty">IConversationRepository</span>
+{
+    <span class="ty">Task</span>&lt;<span class="ty">ChatSession</span>?&gt; <span class="nm">GetByIdAsync</span>(<span class="ty">Guid</span> sessionId, ...);
+    <span class="ty">Task</span>&lt;<span class="ty">IReadOnlyList</span>&lt;<span class="ty">ChatSession</span>&gt;&gt; <span class="nm">GetAllAsync</span>(...);
+    <span class="ty">Task</span> <span class="nm">SaveAsync</span>(<span class="ty">ChatSession</span> session, ...);
+}
+
+<span class="cm">// Infrastructure layer — uses EF Core + SQLite:</span>
+<span class="kw">public sealed class</span> <span class="ty">SqliteConversationRepository</span> : <span class="ty">IConversationRepository</span>
+{
+    <span class="kw">public async</span> <span class="ty">Task</span>&lt;<span class="ty">ChatSession</span>?&gt; <span class="nm">GetByIdAsync</span>(<span class="ty">Guid</span> id, ...)
+        =&gt; <span class="kw">await</span> _db.ChatSessions
+            .<span class="nm">Include</span>(s =&gt; s.Messages)
+            .<span class="nm">FirstOrDefaultAsync</span>(s =&gt; s.Id == id, ...);
+}</code></pre>
+      <div class="callout">
+        <strong>Interview line:</strong> "The repository pattern decouples persistence from business logic, which lets me test the business logic in isolation and swap databases without touching Application code."
+      </div>
+    </div>
+
+    <!-- DI -->
+    <div class="pattern-card">
+      <div class="pattern-icon" style="background:rgba(245,158,11,.12);">⚡</div>
+      <h3>Dependency Injection (DI)</h3>
+      <p>Instead of classes creating their own dependencies with <code>new</code>, they declare what they need in their constructor, and the framework supplies them automatically. This is called <strong>Inversion of Control</strong>.</p>
+
+<pre><code><span class="cm">// Registration in InfrastructureServiceRegistration.cs:</span>
+services.<span class="nm">AddScoped</span>&lt;<span class="ty">IConversationRepository</span>, <span class="ty">SqliteConversationRepository</span>&gt;();
+services.<span class="nm">AddSingleton</span>&lt;<span class="ty">IIntentDetector</span>, <span class="ty">KeywordIntentDetector</span>&gt;();
+services.<span class="nm">AddScoped</span>&lt;<span class="ty">IPromptRenderer</span>, <span class="ty">PromptRenderer</span>&gt;();</code></pre>
+
+      <p>When an API request arrives needing a <code>ChatService</code>, .NET injects all its dependencies automatically.</p>
+      <div class="lifetime-row">
+        <div class="lifetime-card">
+          <div class="lt-label lt-singleton">Singleton</div>
+          <p>One instance for the entire app lifetime. Used for stateless services like <code>KeywordIntentDetector</code>.</p>
+        </div>
+        <div class="lifetime-card">
+          <div class="lt-label lt-scoped">Scoped</div>
+          <p>One instance per HTTP request. Used for database contexts to avoid sharing state between requests.</p>
+        </div>
+        <div class="lifetime-card">
+          <div class="lt-label lt-transient">Transient</div>
+          <p>A new instance every time it's requested. Used for lightweight, stateless utilities.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DDD -->
+    <div class="pattern-card">
+      <div class="pattern-icon" style="background:rgba(124,91,246,.12);">🧱</div>
+      <h3>Domain-Driven Design (DDD) Concepts</h3>
+
+      <h3>Entities — objects with a unique identity</h3>
+      <ul class="iface-list">
+        <li><code>ChatSession</code> <span>— a conversation. Has a unique Id, Mode, Title, and a list of messages.</span></li>
+        <li><code>ChatMessage</code> <span>— a single turn (user or assistant). Belongs to a ChatSession.</span></li>
+        <li><code>Document / DocumentChunk</code> <span>— an uploaded file, split into searchable pieces.</span></li>
+      </ul>
+
+      <p>Entities are <strong>pure data containers</strong> with <code>init</code>-only properties — set once at creation, never mutated externally:</p>
+<pre><code><span class="kw">public sealed class</span> <span class="ty">ChatMessage</span>
+{
+    <span class="kw">public</span> <span class="ty">Guid</span>     Id             { <span class="kw">get</span>; <span class="kw">init</span>; } = <span class="ty">Guid</span>.<span class="nm">NewGuid</span>();
+    <span class="kw">public</span> <span class="ty">Guid</span>     SessionId      { <span class="kw">get</span>; <span class="kw">init</span>; }
+    <span class="kw">public</span> <span class="ty">MessageRole</span> Role         { <span class="kw">get</span>; <span class="kw">init</span>; }
+    <span class="kw">public</span> <span class="ty">string</span>  Content        { <span class="kw">get</span>; <span class="kw">init</span>; } = <span class="ty">string</span>.Empty;
+    <span class="kw">public</span> <span class="ty">DateTime</span> CreatedAt      { <span class="kw">get</span>; <span class="kw">init</span>; } = <span class="ty">DateTime</span>.UtcNow;
+    <span class="kw">public</span> <span class="ty">bool</span>    IsGroundedBySap { <span class="kw">get</span>; <span class="kw">init</span>; }
+}</code></pre>
+
+      <h3>Value Objects — objects defined by their values</h3>
+      <ul class="iface-list">
+        <li><code>SapIntent</code> <span>— what the user is asking (e.g. BusinessPartnerLookup with CardCode = "C001").</span></li>
+        <li><code>ConversationContext</code> <span>— everything needed to assemble one LLM prompt.</span></li>
+        <li><code>PromptTemplate</code> <span>— a named, versioned prompt text loaded from a file.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ════ MESSAGE FLOW ════ -->
+  <section id="flow">
+    <div class="section-label">05 — Request Lifecycle</div>
+    <h2>How a Message Flows Through the System</h2>
+    <p>This is the most important part to understand and explain. Here is the full journey when a user types <em>"Show me customer C001"</em>:</p>
+
+    <div class="flow">
+      <div class="flow-header">Full request lifecycle — 10 steps</div>
+      <div class="flow-step">
+        <div class="step-num">0</div>
+        <div class="step-body">
+          <strong>User types in the Blazor UI (SapAiAssistant.Web)</strong>
+          <span>Sends <code>POST /api/chat/messages</code> to the API with the user's message, mode, and optional session ID.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">0</div>
+        <div class="step-body">
+          <strong>API endpoint receives the request (SapAiAssistant.Api)</strong>
+          <span>Calls <code>IChatService.SendMessageAsync(request)</code> and returns the result as JSON.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Load or create a ChatSession</strong>
+          <span><code>IConversationRepository.GetByIdAsync</code> loads an existing session from SQLite, or a new <code>ChatSession</code> is created.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Add the user's message</strong>
+          <span>A new <code>ChatMessage</code> with <code>Role = User</code> is added to <code>session.Messages</code>.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Load conversation history</strong>
+          <span><code>IConversationMemoryStore.GetRecentAsync</code> returns the last 10 messages so the AI has context for follow-up questions.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Detect intent</strong>
+          <span><code>IIntentDetector.DetectAsync</code> → <code>KeywordIntentDetector</code> scans for keywords. Returns <code>SapIntent { Kind = BusinessPartnerLookup, Parameters = { CardCode: "C001" } }</code>.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Fetch SAP grounding data (if needed)</strong>
+          <span><code>ISapContextBuilder.BuildAsync</code> → <code>ServiceLayerGateway</code> calls SAP B1 Service Layer REST API. Returns a formatted text block with real SAP data.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <strong>RAG — retrieve relevant document chunks</strong>
+          <span><code>IRagContextProvider.GetContextAsync</code> embeds the question, searches <code>SqliteVectorStore</code> by cosine similarity, returns matching excerpts from uploaded documents.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <strong>Render the prompt</strong>
+          <span><code>IPromptRenderer.RenderAsync</code> assembles: system prompt + mode instructions + SAP data + RAG data + history + user message into one text block.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">8</div>
+        <div class="step-body">
+          <strong>Call the LLM</strong>
+          <span><code>ILlmClient.GenerateAsync</code> → <code>OllamaClient</code> sends the prompt to the local Ollama server. Returns the AI's response text.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">9</div>
+        <div class="step-body">
+          <strong>Save the assistant message</strong>
+          <span>A new <code>ChatMessage</code> with <code>Role = Assistant</code> and the AI response is added to the session.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">10</div>
+        <div class="step-body">
+          <strong>Persist the session</strong>
+          <span><code>IConversationRepository.SaveAsync</code> → <code>SqliteConversationRepository</code> writes everything to the SQLite database.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ RAG ════ -->
+  <section id="rag">
+    <div class="section-label">06 — AI Pattern</div>
+    <h2>RAG — Retrieval-Augmented Generation</h2>
+    <p>RAG is a technique that gives the AI access to <strong>your own documents without retraining the model</strong>. It solves the problem: <em>"the AI doesn't know about my company's specific data."</em></p>
+
+    <div class="rag-steps">
+      <div class="rag-step">
+        <div class="rag-num" style="background:rgba(91,141,246,.15);color:var(--accent);">1</div>
+        <h4>Ingest</h4>
+        <p>A document is uploaded, split into chunks (~500 chars each), and each chunk is converted into a vector embedding by Ollama.</p>
+      </div>
+      <div class="rag-step">
+        <div class="rag-num" style="background:rgba(62,207,142,.15);color:var(--green);">2</div>
+        <h4>Store</h4>
+        <p>Chunks + embeddings are saved in the SQLite <code>DocumentChunk</code> table as <code>float[]</code> arrays.</p>
+      </div>
+      <div class="rag-step">
+        <div class="rag-num" style="background:rgba(245,158,11,.15);color:var(--amber);">3</div>
+        <h4>Retrieve</h4>
+        <p>The user's question is embedded. Cosine similarity finds the most relevant chunks in the database.</p>
+      </div>
+      <div class="rag-step">
+        <div class="rag-num" style="background:rgba(124,91,246,.15);color:var(--accent2);">4</div>
+        <h4>Augment</h4>
+        <p>Relevant chunks are injected into the prompt so the AI can reference your documents when answering.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Cosine similarity</strong> is a mathematical measure of how "close" two vectors are — values range from 0 (completely different) to 1 (identical meaning). This is how the system finds document chunks that are relevant to the user's question.
+    </div>
+  </section>
+
+  <!-- ════ PERSISTENCE ════ -->
+  <section id="persistence">
+    <div class="section-label">07 — Data</div>
+    <h2>Persistence: EF Core + SQLite</h2>
+    <p><strong>Entity Framework Core (EF Core)</strong> is an ORM (Object-Relational Mapper) — it lets you work with database tables as C# objects instead of writing raw SQL.</p>
+    <p><strong>SQLite</strong> is a file-based database — no server needed, ideal for development and small deployments.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Concept</th><th>What it does</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Migrations</td>
+            <td>Versioned SQL scripts generated by EF Core. The API runs <code>MigrateAsync()</code> on startup to keep the schema up to date automatically.</td>
+          </tr>
+          <tr>
+            <td><code>AppDbContext</code></td>
+            <td>The EF Core gateway to the database. Contains <code>DbSet&lt;ChatSession&gt;</code>, <code>DbSet&lt;ChatMessage&gt;</code>, <code>DbSet&lt;Document&gt;</code>, <code>DbSet&lt;DocumentChunk&gt;</code>.</td>
+          </tr>
+          <tr>
+            <td><code>IEntityTypeConfiguration</code></td>
+            <td>EF Core configuration classes defining table structure, relationships, and cascade-delete rules — separate from entity classes.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ════ TESTING ════ -->
+  <section id="testing">
+    <div class="section-label">08 — Quality</div>
+    <h2>Testing Strategy</h2>
+
+    <div class="test-row">
+      <div class="test-card">
+        <div class="count">62</div>
+        <div class="type">Unit Tests</div>
+        <p>Test one class in isolation. All external dependencies (database, AI, SAP) are replaced with <strong>mocks</strong> using NSubstitute. Tests run in milliseconds with no network needed.</p>
+<pre><code><span class="kw">var</span> repo = Substitute.<span class="nm">For</span>&lt;<span class="ty">IConversationRepository</span>&gt;();
+<span class="kw">var</span> llm  = Substitute.<span class="nm">For</span>&lt;<span class="ty">ILlmClient</span>&gt;();
+llm.<span class="nm">GenerateAsync</span>(...).Returns(<span class="st">"AI response"</span>);
+
+<span class="kw">var</span> sut = <span class="kw">new</span> <span class="ty">ChatService</span>(repo, ...);
+<span class="kw">var</span> result = <span class="kw">await</span> sut.<span class="nm">SendMessageAsync</span>(request);
+
+result.AssistantMessage.<span class="nm">Should</span>().<span class="nm">Be</span>(<span class="st">"AI response"</span>);</code></pre>
+      </div>
+      <div class="test-card">
+        <div class="count">12</div>
+        <div class="type">Integration Tests</div>
+        <p>Test the real EF Core + SQLite stack end-to-end using an <strong>in-memory SQLite database</strong>. Each test gets a fresh database. Verify that data is actually persisted and retrieved correctly.</p>
+        <p style="margin-top:12px;"><strong>Libraries:</strong></p>
+        <ul class="iface-list">
+          <li><code>xUnit</code> <span>— the test framework</span></li>
+          <li><code>NSubstitute</code> <span>— for creating mocks</span></li>
+          <li><code>FluentAssertions</code> <span>— readable assertions</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ MIDDLEWARE ════ -->
+  <section id="middleware">
+    <div class="section-label">09 — HTTP Pipeline</div>
+    <h2>Middleware Pipeline</h2>
+    <p>Every HTTP request passes through middleware in order before reaching an endpoint handler.</p>
+    <div class="mw-pipeline">
+      <div class="mw-item">
+        <span class="mw-badge mw-badge-1">1</span>
+        <div>
+          <strong>GlobalExceptionHandler</strong>
+          <p>Catches any unhandled exception anywhere in the pipeline and converts it into a standardised RFC 9457 <code>ProblemDetails</code> JSON response. Maps exception types to HTTP status codes: <code>ArgumentException</code> → 400, <code>KeyNotFoundException</code> → 404, everything else → 500.</p>
+        </div>
+      </div>
+      <div class="mw-item">
+        <span class="mw-badge mw-badge-2">2</span>
+        <div>
+          <strong>CorrelationIdMiddleware</strong>
+          <p>Assigns a unique ID to each request (from the <code>X-Correlation-Id</code> header, or generates one). This ID is attached to all log entries for that request, so you can trace a single request across thousands of log lines in production.</p>
+        </div>
+      </div>
+      <div class="mw-item">
+        <span class="mw-badge mw-badge-3">3</span>
+        <div>
+          <strong>Health Checks — <code>/health</code></strong>
+          <p>Reports whether Ollama, the SQLite database, and the SAP connection are all reachable. Essential for production monitoring and deployment pipelines.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ DECISIONS ════ -->
+  <section id="decisions">
+    <div class="section-label">10 — Trade-offs</div>
+    <h2>Design Decisions &amp; Trade-offs</h2>
+
+    <div class="qa-card">
+      <div class="qa-q"><div class="q-icon">Q</div><strong>"Why five separate projects instead of one?"</strong></div>
+      <div class="qa-a">Separation of concerns. Each project can be compiled, tested, and deployed independently. More importantly, enforcing the dependency rules at the <em>project level</em> means the compiler will reject any attempt to import Infrastructure code into Domain. It is a hard architectural boundary — not just a convention.</div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-q"><div class="q-icon">Q</div><strong>"Why interfaces everywhere?"</strong></div>
+      <div class="qa-a">Testability and swappability. If <code>ChatService</code> directly used <code>OllamaClient</code>, you could not test it without Ollama running, and you could not swap Ollama for another AI provider without rewriting the service. Interfaces let both scenarios work cleanly.</div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-q"><div class="q-icon">Q</div><strong>"Why SQLite instead of a real database?"</strong></div>
+      <div class="qa-a">SQLite is a deliberate v1 choice. The repository pattern means the entire database can be swapped for SQL Server or PostgreSQL by adding one new Infrastructure implementation. No Application or Domain code would change — zero impact on business logic.</div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-q"><div class="q-icon">Q</div><strong>"Why keyword-based intent detection instead of asking the AI?"</strong></div>
+      <div class="qa-a">Speed and reliability. Asking the AI to detect intent adds one extra LLM round-trip per message (~1–5 seconds). Keywords are instant. The system is designed so <code>IIntentDetector</code> can be swapped for an LLM-based version by changing <em>one line</em> in <code>InfrastructureServiceRegistration.cs</code>.</div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-q"><div class="q-icon">Q</div><strong>"Why <code>init</code> properties instead of factory methods?"</strong></div>
+      <div class="qa-a">Immutability reduces bugs. An entity whose properties cannot change after construction is easier to reason about and test. If something must change (like <code>ChatSession.Title</code>), it is an explicit <code>set</code> property, making mutations visible in code review. Entities become pure data containers with no hidden behaviour.</div>
+    </div>
+
+    <div class="qa-card">
+      <div class="qa-q"><div class="q-icon">Q</div><strong>"Why local AI (Ollama) instead of OpenAI or Azure OpenAI?"</strong></div>
+      <div class="qa-a">Privacy, cost, and development simplicity. All data stays local — nothing is sent to a cloud API. The <code>ILlmClient</code> interface means swapping to OpenAI later is a one-class change with no impact on the rest of the system.</div>
+    </div>
+  </section>
+
+  <!-- ════ VOCAB ════ -->
+  <section id="vocab">
+    <div class="section-label">11 — Glossary</div>
+    <h2>Key Vocabulary for Your Interview</h2>
+    <div class="vocab-grid">
+      <div class="vocab-item"><span class="vocab-term">Clean Architecture</span><span class="vocab-def">Structuring code so business rules don't depend on databases or frameworks.</span></div>
+      <div class="vocab-item"><span class="vocab-term">Dep. Inversion</span><span class="vocab-def">High-level code depends on abstractions (interfaces), not concrete implementations.</span></div>
+      <div class="vocab-item"><span class="vocab-term">Dep. Injection</span><span class="vocab-def">The framework supplies class dependencies automatically via constructors.</span></div>
+      <div class="vocab-item"><span class="vocab-term">Repository</span><span class="vocab-def">Hides database access behind a simple interface.</span></div>
+      <div class="vocab-item"><span class="vocab-term">Interface / Port</span><span class="vocab-def">A contract: "I need something that can do X" — without specifying how.</span></div>
+      <div class="vocab-item"><span class="vocab-term">ORM</span><span class="vocab-def">Lets you work with database rows as C# objects (Entity Framework Core).</span></div>
+      <div class="vocab-item"><span class="vocab-term">Migration</span><span class="vocab-def">A versioned script that updates the database schema.</span></div>
+      <div class="vocab-item"><span class="vocab-term">Mocking</span><span class="vocab-def">Replacing a real dependency with a fake one in tests.</span></div>
+      <div class="vocab-item"><span class="vocab-term">RAG</span><span class="vocab-def">Injecting retrieved document chunks into AI prompts so the AI can answer questions about your data.</span></div>
+      <div class="vocab-item"><span class="vocab-term">Embedding</span><span class="vocab-def">Converting text into a list of numbers that represents its meaning.</span></div>
+      <div class="vocab-item"><span class="vocab-term">Cosine Similarity</span><span class="vocab-def">A measure of how similar two embedding vectors are (0 = different, 1 = identical).</span></div>
+      <div class="vocab-item"><span class="vocab-term">Middleware</span><span class="vocab-def">Code that runs on every HTTP request before/after the endpoint handler.</span></div>
+      <div class="vocab-item"><span class="vocab-term">Correlation ID</span><span class="vocab-def">A unique ID attached to every request for end-to-end tracing in logs.</span></div>
+      <div class="vocab-item"><span class="vocab-term">init property</span><span class="vocab-def">A C# property that can only be set at object creation time.</span></div>
+      <div class="vocab-item"><span class="vocab-term">sealed class</span><span class="vocab-def">A class that cannot be subclassed — signals "this is a final implementation".</span></div>
+      <div class="vocab-item"><span class="vocab-term">Value Object</span><span class="vocab-def">An object defined by its values, not by a database identity.</span></div>
+      <div class="vocab-item"><span class="vocab-term">Entity</span><span class="vocab-def">An object with a unique identity that persists over time.</span></div>
+    </div>
+  </section>
+
+  <!-- ════ INTERVIEW LINES ════ -->
+  <section id="interview">
+    <div class="section-label">12 — Interview Prep</div>
+    <h2>Things to Say Confidently in an Interview</h2>
+    <ul class="quote-list">
+      <li>"I applied Clean Architecture to enforce a strict dependency rule: business logic never depends on infrastructure details like the database or the AI provider."</li>
+      <li>"I used the Repository pattern so persistence is hidden behind an interface. Swapping SQLite for SQL Server would be a one-class change."</li>
+      <li>"I implemented a full RAG pipeline from scratch — document ingestion, chunking, embedding with Ollama, cosine similarity search in SQLite, and prompt injection."</li>
+      <li>"All external dependencies are abstracted behind interfaces, which lets me test the Application layer with mocks and without any real infrastructure running."</li>
+      <li>"I chose Dependency Injection to wire the system together, using ASP.NET Core's built-in container. Each class declares what it needs; the framework supplies it."</li>
+      <li>"I used init-only properties on entities to enforce immutability — properties are set once at creation, which eliminates a class of bugs where state changes happen in unexpected places."</li>
+      <li>"The intent detection layer is keyword-based in v1, but the IIntentDetector interface means I can replace it with LLM-based detection by swapping one class — the rest of the system doesn't change."</li>
+    </ul>
+  </section>
+
+</div><!-- /page -->
+</body>
+</html>
