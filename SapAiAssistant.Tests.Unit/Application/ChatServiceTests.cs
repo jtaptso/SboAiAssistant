@@ -38,7 +38,7 @@ public sealed class ChatServiceTests
             .Returns([]);
 
         _detector.DetectAsync(Arg.Any<string>(), Arg.Any<AssistantMode>(), Arg.Any<CancellationToken>())
-            .Returns(SapIntent.General());
+            .Returns(new SapIntent());
 
         _ragProvider.GetContextAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((string?)null);
@@ -94,8 +94,7 @@ public sealed class ChatServiceTests
     public async Task SendMessage_WhenSapContextReturned_MarksGrounded()
     {
         _detector.DetectAsync(Arg.Any<string>(), Arg.Any<AssistantMode>(), Arg.Any<CancellationToken>())
-            .Returns(SapIntent.Create(SapIntentKind.BusinessPartnerLookup,
-                new Dictionary<string, string> { ["CardCode"] = "C001" }));
+            .Returns(new SapIntent { Kind = SapIntentKind.BusinessPartnerLookup, Parameters = new Dictionary<string, string> { ["CardCode"] = "C001" } });
 
         _sapBuilder.BuildAsync(Arg.Any<SapIntent>(), Arg.Any<CancellationToken>())
             .Returns("[SAP] CardCode: C001");
@@ -110,7 +109,7 @@ public sealed class ChatServiceTests
     public async Task SendMessage_GeneralIntent_DoesNotCallSapBuilder()
     {
         _detector.DetectAsync(Arg.Any<string>(), Arg.Any<AssistantMode>(), Arg.Any<CancellationToken>())
-            .Returns(SapIntent.General());
+            .Returns(new SapIntent());
 
         await _sut.SendMessageAsync(
             new SendMessageRequest(null, AssistantMode.BusinessUser, "What is a journal entry?"));
@@ -124,7 +123,7 @@ public sealed class ChatServiceTests
     public async Task SendMessage_DeveloperMode_DoesNotCallSapBuilder()
     {
         _detector.DetectAsync(Arg.Any<string>(), Arg.Any<AssistantMode>(), Arg.Any<CancellationToken>())
-            .Returns(SapIntent.Create(SapIntentKind.DeveloperCodeGeneration));
+            .Returns(new SapIntent { Kind = SapIntentKind.DeveloperCodeGeneration });
 
         await _sut.SendMessageAsync(
             new SendMessageRequest(null, AssistantMode.Developer, "Generate a business partner add snippet"));

@@ -34,30 +34,14 @@ public enum SapIntentKind
 /// </summary>
 public sealed class SapIntent
 {
-    public SapIntentKind Kind { get; }
-    public IReadOnlyDictionary<string, string> Parameters { get; }
-
-    private SapIntent(SapIntentKind kind, IReadOnlyDictionary<string, string> parameters)
-    {
-        Kind = kind;
-        Parameters = parameters;
-    }
-
-    public static SapIntent Create(SapIntentKind kind, IDictionary<string, string>? parameters = null) =>
-        new(kind, (parameters ?? new Dictionary<string, string>()).AsReadOnly());
-
-    public static SapIntent General() => Create(SapIntentKind.General);
+    public SapIntentKind Kind { get; init; }
+    public IReadOnlyDictionary<string, string> Parameters { get; init; } = new Dictionary<string, string>();
 
     /// <summary>Returns true if this intent requires a SAP data lookup.</summary>
-    public bool RequiresSapLookup() => Kind is
+    public bool RequiresSapLookup => Kind is
         SapIntentKind.BusinessPartnerLookup or
         SapIntentKind.ItemLookup or
         SapIntentKind.SalesOrderLookup or
         SapIntentKind.InvoiceLookup or
         SapIntentKind.CompanyMetadata;
-
-    public bool TryGetParameter(string key, out string value) =>
-        Parameters.TryGetValue(key, out value!);
-
-    public override string ToString() => $"{Kind} ({Parameters.Count} params)";
 }

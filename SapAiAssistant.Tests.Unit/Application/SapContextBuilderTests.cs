@@ -25,8 +25,11 @@ public sealed class SapContextBuilderTests
             "+1 555 1234", "acme@example.com", "USD", 5000m);
         _gateway.GetBusinessPartnerAsync("C001", Arg.Any<CancellationToken>()).Returns(bp);
 
-        var intent = SapIntent.Create(SapIntentKind.BusinessPartnerLookup,
-            new Dictionary<string, string> { ["CardCode"] = "C001" });
+        var intent = new SapIntent
+        {
+            Kind = SapIntentKind.BusinessPartnerLookup,
+            Parameters = new Dictionary<string, string> { ["CardCode"] = "C001" }
+        };
 
         var result = await _sut.BuildAsync(intent);
 
@@ -42,8 +45,11 @@ public sealed class SapContextBuilderTests
         _gateway.GetBusinessPartnerAsync("X999", Arg.Any<CancellationToken>())
             .Returns((SapBusinessPartner?)null);
 
-        var intent = SapIntent.Create(SapIntentKind.BusinessPartnerLookup,
-            new Dictionary<string, string> { ["CardCode"] = "X999" });
+        var intent = new SapIntent
+        {
+            Kind = SapIntentKind.BusinessPartnerLookup,
+            Parameters = new Dictionary<string, string> { ["CardCode"] = "X999" }
+        };
 
         var result = await _sut.BuildAsync(intent);
 
@@ -53,7 +59,7 @@ public sealed class SapContextBuilderTests
     [Fact]
     public async Task BusinessPartner_MissingCardCodeParam_ReturnsNull()
     {
-        var intent = SapIntent.Create(SapIntentKind.BusinessPartnerLookup);
+        var intent = new SapIntent { Kind = SapIntentKind.BusinessPartnerLookup };
 
         var result = await _sut.BuildAsync(intent);
 
@@ -69,8 +75,11 @@ public sealed class SapContextBuilderTests
         var item = new SapItem("IT-001", "Laptop Pro", "itItems", 42m, "EA", 999.99m);
         _gateway.GetItemAsync("IT-001", Arg.Any<CancellationToken>()).Returns(item);
 
-        var intent = SapIntent.Create(SapIntentKind.ItemLookup,
-            new Dictionary<string, string> { ["ItemCode"] = "IT-001" });
+        var intent = new SapIntent
+        {
+            Kind = SapIntentKind.ItemLookup,
+            Parameters = new Dictionary<string, string> { ["ItemCode"] = "IT-001" }
+        };
 
         var result = await _sut.BuildAsync(intent);
 
@@ -87,8 +96,11 @@ public sealed class SapContextBuilderTests
             "Open", 2500m, "USD");
         _gateway.GetSalesOrderAsync(100, Arg.Any<CancellationToken>()).Returns(order);
 
-        var intent = SapIntent.Create(SapIntentKind.SalesOrderLookup,
-            new Dictionary<string, string> { ["DocEntry"] = "100" });
+        var intent = new SapIntent
+        {
+            Kind = SapIntentKind.SalesOrderLookup,
+            Parameters = new Dictionary<string, string> { ["DocEntry"] = "100" }
+        };
 
         var result = await _sut.BuildAsync(intent);
 
@@ -100,7 +112,7 @@ public sealed class SapContextBuilderTests
     [Fact]
     public async Task General_Intent_ReturnsNull()
     {
-        var result = await _sut.BuildAsync(SapIntent.General());
+        var result = await _sut.BuildAsync(new SapIntent());
 
         result.Should().BeNull();
         await _gateway.DidNotReceive().GetBusinessPartnerAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
@@ -114,8 +126,11 @@ public sealed class SapContextBuilderTests
         _gateway.GetBusinessPartnerAsync("ERR", Arg.Any<CancellationToken>())
             .Returns<SapBusinessPartner?>(_ => throw new HttpRequestException("timeout"));
 
-        var intent = SapIntent.Create(SapIntentKind.BusinessPartnerLookup,
-            new Dictionary<string, string> { ["CardCode"] = "ERR" });
+        var intent = new SapIntent
+        {
+            Kind = SapIntentKind.BusinessPartnerLookup,
+            Parameters = new Dictionary<string, string> { ["CardCode"] = "ERR" }
+        };
 
         var result = await _sut.BuildAsync(intent);
 

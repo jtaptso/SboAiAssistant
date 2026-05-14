@@ -38,7 +38,7 @@ public sealed class KeywordIntentDetectorTests
     {
         var intent = await _sut.DetectAsync("Show me customer C001 details", AssistantMode.BusinessUser);
 
-        intent.TryGetParameter("CardCode", out var code).Should().BeTrue();
+        intent.Parameters.TryGetValue("CardCode", out var code).Should().BeTrue();
         code.Should().Be("C001");
     }
 
@@ -73,7 +73,7 @@ public sealed class KeywordIntentDetectorTests
     {
         var intent = await _sut.DetectAsync("Get me sales order 4242", AssistantMode.BusinessUser);
 
-        intent.TryGetParameter("DocEntry", out var docEntry).Should().BeTrue();
+        intent.Parameters.TryGetValue("DocEntry", out var docEntry).Should().BeTrue();
         docEntry.Should().Be("4242");
     }
 

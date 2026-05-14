@@ -9,10 +9,10 @@ public sealed class SapIntentTests
     [Fact]
     public void General_ReturnsGeneralKind()
     {
-        var intent = SapIntent.General();
+        var intent = new SapIntent();
 
         intent.Kind.Should().Be(SapIntentKind.General);
-        intent.RequiresSapLookup().Should().BeFalse();
+        intent.RequiresSapLookup.Should().BeFalse();
     }
 
     [Theory]
@@ -23,7 +23,7 @@ public sealed class SapIntentTests
     [InlineData(SapIntentKind.CompanyMetadata)]
     public void RequiresSapLookup_IsTrueForSapKinds(SapIntentKind kind)
     {
-        SapIntent.Create(kind).RequiresSapLookup().Should().BeTrue();
+        new SapIntent { Kind = kind }.RequiresSapLookup.Should().BeTrue();
     }
 
     [Theory]
@@ -31,34 +31,37 @@ public sealed class SapIntentTests
     [InlineData(SapIntentKind.DeveloperCodeGeneration)]
     public void RequiresSapLookup_IsFalseForNonSapKinds(SapIntentKind kind)
     {
-        SapIntent.Create(kind).RequiresSapLookup().Should().BeFalse();
+        new SapIntent { Kind = kind }.RequiresSapLookup.Should().BeFalse();
     }
 
     [Fact]
-    public void TryGetParameter_ReturnsTrueWhenPresent()
+    public void Parameters_ReturnsTrueWhenPresent()
     {
-        var intent = SapIntent.Create(SapIntentKind.BusinessPartnerLookup,
-            new Dictionary<string, string> { ["CardCode"] = "C001" });
+        var intent = new SapIntent
+        {
+            Kind = SapIntentKind.BusinessPartnerLookup,
+            Parameters = new Dictionary<string, string> { ["CardCode"] = "C001" }
+        };
 
-        intent.TryGetParameter("CardCode", out var value).Should().BeTrue();
+        intent.Parameters.TryGetValue("CardCode", out var value).Should().BeTrue();
         value.Should().Be("C001");
     }
 
     [Fact]
-    public void TryGetParameter_ReturnsFalseWhenAbsent()
+    public void Parameters_ReturnsFalseWhenAbsent()
     {
-        var intent = SapIntent.General();
+        var intent = new SapIntent();
 
-        intent.TryGetParameter("CardCode", out _).Should().BeFalse();
+        intent.Parameters.TryGetValue("CardCode", out _).Should().BeFalse();
     }
 
     [Fact]
-    public void ConversationContext_WithSapContext_ReturnsNewInstanceWithContext()
+    public void ConversationContext_ObjectInitializer_SetsProperties()
     {
-        var ctx = ConversationContext.Create(
-            Guid.NewGuid(), AssistantMode.BusinessUser, "Show me customer C001");
+        var sessionId = Guid.NewGuid();
+        var ctx = new ConversationContext { SessionId = sessionId, Mode = AssistantMode.BusinessUser, UserMessage = "Show me customer C001" };
 
-        var enriched = ctx.WithSapContext("[SAP] CardCode: C001");
+        var enriched = new ConversationContext { SessionId = ctx.SessionId, Mode = ctx.Mode, UserMessage = ctx.UserMessage, History = ctx.History, SapDataContext = "[SAP] CardCode: C001", RagContext = ctx.RagContext };
 
         ctx.SapDataContext.Should().BeNull();
         enriched.SapDataContext.Should().Be("[SAP] CardCode: C001");

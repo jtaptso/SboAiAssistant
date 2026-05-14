@@ -43,7 +43,7 @@ public sealed class SapContextBuilder : ISapContextBuilder
 
     private async Task<string?> BuildBusinessPartnerContextAsync(SapIntent intent, CancellationToken ct)
     {
-        if (!intent.TryGetParameter("CardCode", out var cardCode))
+        if (!intent.Parameters.TryGetValue("CardCode", out var cardCode))
             return null;
 
         var bp = await _sap.GetBusinessPartnerAsync(cardCode, ct);
@@ -64,7 +64,7 @@ public sealed class SapContextBuilder : ISapContextBuilder
 
     private async Task<string?> BuildItemContextAsync(SapIntent intent, CancellationToken ct)
     {
-        if (!intent.TryGetParameter("ItemCode", out var itemCode))
+        if (!intent.Parameters.TryGetValue("ItemCode", out var itemCode))
             return null;
 
         var item = await _sap.GetItemAsync(itemCode, ct);
@@ -83,7 +83,7 @@ public sealed class SapContextBuilder : ISapContextBuilder
 
     private async Task<string?> BuildSalesOrderContextAsync(SapIntent intent, CancellationToken ct)
     {
-        if (!intent.TryGetParameter("DocEntry", out var docEntryStr) || !int.TryParse(docEntryStr, out var docEntry))
+        if (!intent.Parameters.TryGetValue("DocEntry", out var docEntryStr) || !int.TryParse(docEntryStr, out var docEntry))
             return null;
 
         var order = await _sap.GetSalesOrderAsync(docEntry, ct);
@@ -104,7 +104,7 @@ public sealed class SapContextBuilder : ISapContextBuilder
 
     private async Task<string?> BuildInvoiceContextAsync(SapIntent intent, CancellationToken ct)
     {
-        if (!intent.TryGetParameter("DocEntry", out var docEntryStr) || !int.TryParse(docEntryStr, out var docEntry))
+        if (!intent.Parameters.TryGetValue("DocEntry", out var docEntryStr) || !int.TryParse(docEntryStr, out var docEntry))
             return null;
 
         var invoice = await _sap.GetInvoiceAsync(docEntry, ct);

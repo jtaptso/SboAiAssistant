@@ -66,7 +66,7 @@ public sealed class ChatService : IChatService
         _logger.LogInformation("Detected intent {Kind} for session {SessionId}", intent.Kind, session.Id);
 
         string? sapContext = null;
-        if (intent.RequiresSapLookup())
+        if (intent.RequiresSapLookup)
         {
             sapContext = await _sapContextBuilder.BuildAsync(intent, cancellationToken);
             if (sapContext is not null)
@@ -79,13 +79,15 @@ public sealed class ChatService : IChatService
             _logger.LogInformation("RAG context retrieved for session {SessionId}", session.Id);
 
         // Build ConversationContext value object for the prompt assembler
-        var context = ConversationContext.Create(
-            session.Id,
-            request.Mode,
-            request.UserMessage,
-            historyTuples,
-            sapContext,
-            ragContext);
+        var context = new ConversationContext
+        {
+            SessionId = session.Id,
+            Mode = request.Mode,
+            UserMessage = request.UserMessage,
+            History = historyTuples,
+            SapDataContext = sapContext,
+            RagContext = ragContext
+        };
 
         var prompt = await _promptRenderer.RenderAsync(
             context.Mode,

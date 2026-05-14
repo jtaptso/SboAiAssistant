@@ -26,7 +26,7 @@ public sealed class KeywordIntentDetector : IIntentDetector
     {
         // Developer mode always maps to code-generation intent
         if (mode == AssistantMode.Developer)
-            return Task.FromResult(SapIntent.Create(SapIntentKind.DeveloperCodeGeneration));
+            return Task.FromResult(new SapIntent { Kind = SapIntentKind.DeveloperCodeGeneration });
 
         var lower = userMessage.ToLowerInvariant();
 
@@ -39,7 +39,7 @@ public sealed class KeywordIntentDetector : IIntentDetector
             if (match.Success)
                 parms["CardCode"] = match.Value.ToUpperInvariant();
 
-            return Task.FromResult(SapIntent.Create(SapIntentKind.BusinessPartnerLookup, parms));
+            return Task.FromResult(new SapIntent { Kind = SapIntentKind.BusinessPartnerLookup, Parameters = parms });
         }
 
         // Item / Product
@@ -51,7 +51,7 @@ public sealed class KeywordIntentDetector : IIntentDetector
             if (match.Success)
                 parms["ItemCode"] = match.Value.ToUpperInvariant();
 
-            return Task.FromResult(SapIntent.Create(SapIntentKind.ItemLookup, parms));
+            return Task.FromResult(new SapIntent { Kind = SapIntentKind.ItemLookup, Parameters = parms });
         }
 
         // Sales Order
@@ -63,7 +63,7 @@ public sealed class KeywordIntentDetector : IIntentDetector
             if (match.Success)
                 parms["DocEntry"] = match.Value;
 
-            return Task.FromResult(SapIntent.Create(SapIntentKind.SalesOrderLookup, parms));
+            return Task.FromResult(new SapIntent { Kind = SapIntentKind.SalesOrderLookup, Parameters = parms });
         }
 
         // Invoice
@@ -75,14 +75,14 @@ public sealed class KeywordIntentDetector : IIntentDetector
             if (match.Success)
                 parms["DocEntry"] = match.Value;
 
-            return Task.FromResult(SapIntent.Create(SapIntentKind.InvoiceLookup, parms));
+            return Task.FromResult(new SapIntent { Kind = SapIntentKind.InvoiceLookup, Parameters = parms });
         }
 
         // Company Metadata
         if (ContainsAny(lower, "company db", "company info", "system info", "tenant"))
-            return Task.FromResult(SapIntent.Create(SapIntentKind.CompanyMetadata));
+            return Task.FromResult(new SapIntent { Kind = SapIntentKind.CompanyMetadata });
 
-        return Task.FromResult(SapIntent.General());
+        return Task.FromResult(new SapIntent());
     }
 
     private static bool ContainsAny(string source, params string[] keywords)
