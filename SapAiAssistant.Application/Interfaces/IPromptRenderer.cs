@@ -13,5 +13,6 @@ public interface IPromptRenderer
         IReadOnlyList<(MessageRole Role, string Content)> history,
         string userMessage,
         string? sapContext = null,
+        string? ragContext = null,
         CancellationToken cancellationToken = default);
 }

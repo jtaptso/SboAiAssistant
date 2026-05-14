@@ -1,0 +1,28 @@
+@using SapAiAssistant.Web.Services
+@inject ChatState State
+
+<div class="doc-list">
+    @if (!State.Documents.Any())
+    {
+        <p class="doc-list-empty">No documents uploaded yet.</p>
+    }
+    else
+    {
+        @foreach (var doc in State.Documents)
+        {
+            <div class="doc-item">
+                <div class="doc-item-info">
+                    <span class="doc-item-name" title="@doc.Name">@doc.Name</span>
+                    <span class="doc-item-meta">@doc.ChunkCount chunks · @doc.UploadedAt.ToString("MMM d")</span>
+                </div>
+                <button class="doc-item-delete" title="Delete document"
+                        @onclick="() => OnDelete(doc.Id)">✕</button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private async Task OnDelete(Guid documentId)
+        => await State.DeleteDocumentAsync(documentId);
+}

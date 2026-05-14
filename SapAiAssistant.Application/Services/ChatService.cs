@@ -15,6 +15,7 @@ public sealed class ChatService : IChatService
     private readonly ILlmClient _llmClient;
     private readonly IIntentDetector _intentDetector;
     private readonly ISapContextBuilder _sapContextBuilder;
+    private readonly IRagContextProvider _ragContextProvider;
     private readonly ILogger<ChatService> _logger;
 
     public ChatService(
@@ -24,6 +25,7 @@ public sealed class ChatService : IChatService
         ILlmClient llmClient,
         IIntentDetector intentDetector,
         ISapContextBuilder sapContextBuilder,
+        IRagContextProvider ragContextProvider,
         ILogger<ChatService> logger)
     {
         _conversations = conversations;
@@ -32,6 +34,7 @@ public sealed class ChatService : IChatService
         _llmClient = llmClient;
         _intentDetector = intentDetector;
         _sapContextBuilder = sapContextBuilder;
+        _ragContextProvider = ragContextProvider;
         _logger = logger;
     }
 
@@ -69,19 +72,26 @@ public sealed class ChatService : IChatService
                 _logger.LogInformation("SAP context fetched for intent {Kind}", intent.Kind);
         }
 
+        // Retrieve RAG context from knowledge base
+        var ragContext = await _ragContextProvider.GetContextAsync(request.UserMessage, cancellationToken);
+        if (ragContext is not null)
+            _logger.LogInformation("RAG context retrieved for session {SessionId}", session.Id);
+
         // Build ConversationContext value object for the prompt assembler
         var context = ConversationContext.Create(
             session.Id,
             request.Mode,
             request.UserMessage,
             historyTuples,
-            sapContext);
+            sapContext,
+            ragContext);
 
         var prompt = await _promptRenderer.RenderAsync(
             context.Mode,
             context.History,
             context.UserMessage,
             context.SapDataContext,
+            context.RagContext,
             cancellationToken);
 
         _logger.LogInformation("Sending prompt to LLM for session {SessionId}", session.Id);
@@ -90,8 +100,9 @@ public sealed class ChatService : IChatService
         var assistantText = await _llmClient.GenerateAsync(prompt, request.Model, cancellationToken);
         var resolvedModel = request.Model ?? "default";
 
-        // Persist assistant response — mark as grounded when SAP data was injected
+        // Persist assistant response — mark as grounded when SAP data or RAG context was injected
         var isGrounded = sapContext is not null;
+        var isGroundedByRag = ragContext is not null;
         var assistantMessage = ChatMessage.Create(session.Id, MessageRole.Assistant, assistantText, isGrounded);
         session.AddMessage(assistantMessage);
 
@@ -102,6 +113,7 @@ public sealed class ChatService : IChatService
             assistantMessage.Id,
             assistantText,
             assistantMessage.IsGroundedBySap,
+            isGroundedByRag,
             session.Mode,
             resolvedModel);
     }

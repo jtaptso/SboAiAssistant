@@ -19,6 +19,7 @@ public sealed class PromptRenderer : IPromptRenderer
         IReadOnlyList<(MessageRole Role, string Content)> history,
         string userMessage,
         string? sapContext = null,
+        string? ragContext = null,
         CancellationToken cancellationToken = default)
     {
         var sb = new StringBuilder();
@@ -45,6 +46,12 @@ public sealed class PromptRenderer : IPromptRenderer
         {
             sb.AppendLine("### SAP Data Context");
             sb.AppendLine(sapContext);
+            sb.AppendLine();
+        }
+
+        if (!string.IsNullOrWhiteSpace(ragContext))
+        {
+            sb.AppendLine(ragContext);
             sb.AppendLine();
         }
 

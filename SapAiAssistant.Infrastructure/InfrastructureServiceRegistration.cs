@@ -28,6 +28,8 @@ public static class InfrastructureServiceRegistration
         services.Configure<OllamaOptions>(configuration.GetSection(OllamaOptions.Section));
         services.Configure<SapOptions>(configuration.GetSection(SapOptions.Section));
         services.Configure<PromptOptions>(configuration.GetSection(PromptOptions.Section));
+        services.Configure<EmbeddingOptions>(configuration.GetSection(EmbeddingOptions.SectionName));
+        services.Configure<RagOptions>(configuration.GetSection(RagOptions.SectionName));
 
         // Ollama LLM client
         services.AddHttpClient<ILlmClient, OllamaClient>((sp, client) =>
@@ -40,11 +42,22 @@ public static class InfrastructureServiceRegistration
             client.Timeout = TimeSpan.FromMinutes(options.TimeoutMinutes);
         });
 
+        // Ollama Embedding client
+        services.AddHttpClient<IEmbeddingClient, OllamaEmbeddingClient>((sp, client) =>
+        {
+            var options = configuration
+                .GetSection(EmbeddingOptions.SectionName)
+                .Get<EmbeddingOptions>() ?? new EmbeddingOptions();
+
+            client.BaseAddress = new Uri(options.BaseUrl);
+        });
+
         // SQLite persistence
         var dbPath = configuration["Database:Path"] ?? "sapassistant.db";
         services.AddDbContext<AppDbContext>(opt =>
             opt.UseSqlite($"Data Source={dbPath}"));
         services.AddScoped<IConversationRepository, SqliteConversationRepository>();
+        services.AddScoped<IVectorStore, SqliteVectorStore>();
 
         // Prompt management
         services.AddSingleton<IPromptRepository, FilePromptRepository>();

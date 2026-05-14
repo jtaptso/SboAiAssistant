@@ -51,4 +51,36 @@ public sealed class ApiClient
         => await _http.GetFromJsonAsync<List<string>>(
                "/api/models", cancellationToken)
            ?? [];
+
+    public async Task<Guid?> UploadDocumentAsync(
+        string name,
+        Stream fileStream,
+        string fileName,
+        CancellationToken cancellationToken = default)
+    {
+        using var form = new MultipartFormDataContent();
+        form.Add(new StringContent(name), "name");
+        form.Add(new StreamContent(fileStream), "file", fileName);
+
+        var response = await _http.PostAsync("/api/documents", form, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<DocumentUploadResponse>(cancellationToken);
+        return result?.DocumentId;
+    }
+
+    public async Task<IReadOnlyList<DocumentInfo>> GetDocumentsAsync(
+        CancellationToken cancellationToken = default)
+        => await _http.GetFromJsonAsync<List<DocumentInfo>>(
+               "/api/documents", cancellationToken)
+           ?? [];
+
+    public async Task DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
+    {
+        var response = await _http.DeleteAsync($"/api/documents/{documentId}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
 }
+
+public sealed record DocumentUploadResponse(Guid DocumentId, string Name);
+public sealed record DocumentInfo(Guid Id, string Name, int ChunkCount, DateTime UploadedAt);

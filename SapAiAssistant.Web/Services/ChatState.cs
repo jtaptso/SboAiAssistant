@@ -124,7 +124,8 @@ public sealed class ChatState
                 MessageRole.Assistant,
                 response.AssistantMessage,
                 DateTime.UtcNow,
-                response.IsGroundedBySap);
+                response.IsGroundedBySap,
+                response.IsGroundedByRag);
 
             Messages = [.. Messages, assistantMsg];
 
@@ -139,6 +140,49 @@ public sealed class ChatState
         finally
         {
             SetLoading(false);
+        }
+    }
+
+    // ── Knowledge Base ────────────────────────────────────────────────────
+
+    public IReadOnlyList<DocumentInfo> Documents { get; private set; } = [];
+
+    public async Task LoadDocumentsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            Documents = await _api.GetDocumentsAsync(ct);
+            Notify();
+        }
+        catch (Exception ex)
+        {
+            SetError($"Failed to load documents: {ex.Message}");
+        }
+    }
+
+    public async Task UploadDocumentAsync(string name, Stream stream, string fileName, CancellationToken ct = default)
+    {
+        try
+        {
+            await _api.UploadDocumentAsync(name, stream, fileName, ct);
+            await LoadDocumentsAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            SetError($"Failed to upload document: {ex.Message}");
+        }
+    }
+
+    public async Task DeleteDocumentAsync(Guid documentId, CancellationToken ct = default)
+    {
+        try
+        {
+            await _api.DeleteDocumentAsync(documentId, ct);
+            await LoadDocumentsAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            SetError($"Failed to delete document: {ex.Message}");
         }
     }
 

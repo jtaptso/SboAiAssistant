@@ -14,12 +14,13 @@ public sealed class ChatServiceTests
 {
     // ── Substitutes ───────────────────────────────────────────────────────
 
-    private readonly IConversationRepository  _repo       = Substitute.For<IConversationRepository>();
-    private readonly IConversationMemoryStore _memory     = Substitute.For<IConversationMemoryStore>();
-    private readonly IPromptRenderer          _renderer   = Substitute.For<IPromptRenderer>();
-    private readonly ILlmClient               _llm        = Substitute.For<ILlmClient>();
-    private readonly IIntentDetector          _detector   = Substitute.For<IIntentDetector>();
-    private readonly ISapContextBuilder       _sapBuilder = Substitute.For<ISapContextBuilder>();
+    private readonly IConversationRepository  _repo          = Substitute.For<IConversationRepository>();
+    private readonly IConversationMemoryStore _memory        = Substitute.For<IConversationMemoryStore>();
+    private readonly IPromptRenderer          _renderer      = Substitute.For<IPromptRenderer>();
+    private readonly ILlmClient               _llm           = Substitute.For<ILlmClient>();
+    private readonly IIntentDetector          _detector      = Substitute.For<IIntentDetector>();
+    private readonly ISapContextBuilder       _sapBuilder    = Substitute.For<ISapContextBuilder>();
+    private readonly IRagContextProvider      _ragProvider   = Substitute.For<IRagContextProvider>();
 
     private readonly ChatService _sut;
 
@@ -27,7 +28,7 @@ public sealed class ChatServiceTests
     {
         _renderer
             .RenderAsync(Arg.Any<AssistantMode>(), Arg.Any<IReadOnlyList<(MessageRole, string)>>(),
-                Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns("rendered-prompt");
 
         _llm.GenerateAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
@@ -39,8 +40,11 @@ public sealed class ChatServiceTests
         _detector.DetectAsync(Arg.Any<string>(), Arg.Any<AssistantMode>(), Arg.Any<CancellationToken>())
             .Returns(SapIntent.General());
 
+        _ragProvider.GetContextAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((string?)null);
+
         _sut = new ChatService(_repo, _memory, _renderer, _llm, _detector, _sapBuilder,
-            NullLogger<ChatService>.Instance);
+            _ragProvider, NullLogger<ChatService>.Instance);
     }
 
     // ── New session ───────────────────────────────────────────────────────
@@ -192,6 +196,51 @@ public sealed class ChatServiceTests
         await _llm.Received(1).GenerateAsync(
             Arg.Any<string>(),
             null,
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── RAG grounding ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SendMessage_WhenRagContextReturned_IsGroundedByRagIsTrue()
+    {
+        _ragProvider.GetContextAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns("## Knowledge Base\n[Source: manual.txt, chunk 0]\nSome content\n---");
+
+        var response = await _sut.SendMessageAsync(
+            new SendMessageRequest(null, AssistantMode.BusinessUser, "How do I process a payment?"));
+
+        response.IsGroundedByRag.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SendMessage_WhenRagReturnsNull_IsGroundedByRagIsFalse()
+    {
+        _ragProvider.GetContextAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((string?)null);
+
+        var response = await _sut.SendMessageAsync(
+            new SendMessageRequest(null, AssistantMode.BusinessUser, "Hello"));
+
+        response.IsGroundedByRag.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SendMessage_WhenRagContextPresent_PassesItToPromptRenderer()
+    {
+        const string ragContext = "## Knowledge Base\nsome content\n---";
+        _ragProvider.GetContextAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(ragContext);
+
+        await _sut.SendMessageAsync(
+            new SendMessageRequest(null, AssistantMode.BusinessUser, "Explain payment processing"));
+
+        await _renderer.Received(1).RenderAsync(
+            Arg.Any<AssistantMode>(),
+            Arg.Any<IReadOnlyList<(MessageRole, string)>>(),
+            Arg.Any<string>(),
+            Arg.Any<string?>(),
+            ragContext,
             Arg.Any<CancellationToken>());
     }
 }

@@ -21,6 +21,10 @@
                 {
                     <span class="sap-badge" title="Grounded by SAP data">SAP</span>
                 }
+                @if (msg.IsGroundedByRag)
+                {
+                    <span class="rag-badge" title="Grounded by knowledge base">RAG</span>
+                }
                 <span class="msg-time">@msg.CreatedAt.ToString("HH:mm")</span>
             </div>
         </div>

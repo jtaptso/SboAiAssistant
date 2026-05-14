@@ -9,6 +9,7 @@ using SapAiAssistant.Api.Middleware;
 using SapAiAssistant.Application;
 using SapAiAssistant.Application.DTOs;
 using SapAiAssistant.Application.Interfaces;
+using SapAiAssistant.Domain.Abstractions;
 using SapAiAssistant.Infrastructure;
 using SapAiAssistant.Infrastructure.Configuration;
 using SapAiAssistant.Infrastructure.Persistence;
@@ -16,7 +17,7 @@ using SapAiAssistant.Infrastructure.Persistence;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.AddApplication();
+builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // Allow enum values to be sent as strings in JSON (e.g. "BusinessUser" instead of 0)
@@ -98,6 +99,53 @@ app.MapGet("/api/models", (IOptions<OllamaOptions> opts) =>
     Results.Ok(opts.Value.AvailableModels))
 .WithName("GetModels")
 .WithTags("Models");
+
+// ── Document / Knowledge Base endpoints ───────────────────────────────────
+
+app.MapPost("/api/documents", async (
+    HttpRequest httpRequest,
+    IDocumentIngestionService ingestion,
+    CancellationToken ct) =>
+{
+    if (!httpRequest.HasFormContentType)
+        return Results.BadRequest("Expected multipart/form-data");
+
+    var form = await httpRequest.ReadFormAsync(ct);
+    var file = form.Files.GetFile("file");
+    var name = form["name"].FirstOrDefault() ?? file?.FileName ?? "untitled";
+
+    if (file is null || file.Length == 0)
+        return Results.BadRequest("A non-empty file is required");
+
+    await using var stream = file.OpenReadStream();
+    var documentId = await ingestion.IngestAsync(name, stream, ct);
+
+    return Results.Ok(new { documentId, name });
+})
+.WithName("UploadDocument")
+.WithTags("Documents")
+.DisableAntiforgery();
+
+app.MapGet("/api/documents", async (
+    IVectorStore vectorStore,
+    CancellationToken ct) =>
+{
+    var docs = await vectorStore.ListDocumentsAsync(ct);
+    return Results.Ok(docs.Select(d => new { d.Id, d.Name, d.ChunkCount, d.UploadedAt }));
+})
+.WithName("GetDocuments")
+.WithTags("Documents");
+
+app.MapDelete("/api/documents/{id:guid}", async (
+    Guid id,
+    IDocumentIngestionService ingestion,
+    CancellationToken ct) =>
+{
+    await ingestion.DeleteAsync(id, ct);
+    return Results.NoContent();
+})
+.WithName("DeleteDocument")
+.WithTags("Documents");
 
 // ── Health endpoints ───────────────────────────────────────────────────────
 

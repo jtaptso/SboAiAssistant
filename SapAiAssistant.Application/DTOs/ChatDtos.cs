@@ -14,6 +14,7 @@ public sealed record SendMessageResponse(
     Guid MessageId,
     string AssistantMessage,
     bool IsGroundedBySap,
+    bool IsGroundedByRag,
     AssistantMode Mode,
     string Model
 );
@@ -40,5 +41,6 @@ public sealed record MessageDto(
     MessageRole Role,
     string Content,
     DateTime CreatedAt,
-    bool IsGroundedBySap
+    bool IsGroundedBySap,
+    bool IsGroundedByRag = false
 );

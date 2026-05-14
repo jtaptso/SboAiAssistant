@@ -31,6 +31,12 @@
             Conversations="State.Conversations"
             ActiveSessionId="State.ActiveSessionId"
             OnSelect="OnSelectConversation" />
+
+        <details class="kb-section">
+            <summary class="kb-section-title">Knowledge Base</summary>
+            <DocumentUpload />
+            <DocumentList />
+        </details>
     </aside>
 
     <section class="chat-main">
@@ -77,7 +83,8 @@
         State.OnChange += StateHasChanged;
         await Task.WhenAll(
             State.LoadConversationsAsync(),
-            State.LoadModelsAsync());
+            State.LoadModelsAsync(),
+            State.LoadDocumentsAsync());
     }
 
     private async Task OnSelectConversation(Guid sessionId)

@@ -1,0 +1,41 @@
+@using SapAiAssistant.Web.Services
+@inject ChatState State
+
+<div class="doc-upload">
+    <label class="doc-upload-label">Upload document (.txt)</label>
+    <InputFile OnChange="OnFileSelected" accept=".txt" disabled="@_uploading" />
+    @if (_uploading)
+    {
+        <span class="doc-upload-status">Uploading…</span>
+    }
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <span class="doc-upload-error">@_error</span>
+    }
+</div>
+
+@code {
+    private bool _uploading;
+    private string? _error;
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        _uploading = true;
+
+        try
+        {
+            var file = e.File;
+            await using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10 MB max
+            await State.UploadDocumentAsync(file.Name, stream, file.Name);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+}
