@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cognitive Enterprise — SAP B1 AI Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #0f172a;
+  --navy2: #1e293b;
+  --navy3: #334155;
+  --teal: #0ea5e9;
+  --teal-dark: #0284c7;
+  --teal-light: #e0f2fe;
+  --green: #10b981;
+  --green-dim: #d1fae5;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --border: #e2e8f0;
+  --bg: #f8fafc;
+  --bg2: #f1f5f9;
+  --white: #ffffff;
+  --font: 'Inter', sans-serif;
+  --mono: 'Fira Code', monospace;
+  --r: 8px;
+  --r-lg: 14px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+}
+
+html { scroll-behavior: smooth; }
+body { font-family: var(--font); color: var(--text); background: var(--white); font-size: 15px; line-height: 1.6; }
+
+/* ── PAGE SYSTEM ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.nav-logo { font-size: 1rem; font-weight: 700; color: var(--text); cursor: pointer; }
+.nav-links { display: flex; gap: 0; list-style: none; }
+.nav-links a {
+  display: block; padding: 0 1.1rem; height: 56px; line-height: 56px;
+  font-size: 0.875rem; font-weight: 500; color: var(--text-muted);
+  text-decoration: none; border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s; cursor: pointer;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--text); border-bottom-color: var(--teal); }
+.nav-right { display: flex; align-items: center; gap: 0.75rem; }
+.nav-icon { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 0.45rem 1.1rem; border-radius: var(--r); font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.15s; border: none; }
+.btn-primary { background: var(--teal); color: white; }
+.btn-primary:hover { background: var(--teal-dark); }
+.btn-outline { background: white; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--bg); }
+.btn-dark { background: var(--navy); color: white; }
+.btn-dark:hover { background: var(--navy2); }
+.btn-lg { padding: 0.65rem 1.5rem; font-size: 0.9rem; }
+
+/* ── CONTAINERS ── */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+.container-sm { max-width: 760px; margin: 0 auto; padding: 0 2rem; }
+
+/* ── SECTION ── */
+section { padding: 5rem 0; }
+.section-sm { padding: 3rem 0; }
+
+/* ── TYPOGRAPHY ── */
+h1 { font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.015em; }
+h3 { font-size: 1.1rem; font-weight: 600; line-height: 1.3; }
+h4 { font-size: 0.95rem; font-weight: 600; }
+p { color: var(--text-muted); line-height: 1.65; }
+.text-teal { color: var(--teal); }
+.text-muted { color: var(--text-muted); }
+.text-sm { font-size: 0.82rem; }
+.text-xs { font-size: 0.75rem; }
+
+/* ── BADGES / TAGS ── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 100px; font-size: 0.72rem; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.badge-teal { background: var(--teal-light); color: var(--teal-dark); }
+.badge-green { background: var(--green-dim); color: #065f46; }
+.badge-navy { background: var(--navy); color: white; }
+.badge-outline { background: white; color: var(--text-muted); border: 1px solid var(--border); }
+
+/* ── CARDS ── */
+.card {
+  background: white; border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+.card-dark { background: var(--navy); border-color: var(--navy2); color: white; }
+.card-dark p, .card-dark .text-muted { color: #94a3b8; }
+.card-teal { background: var(--teal); color: white; }
+.card-teal p { color: rgba(255,255,255,0.85); }
+
+/* ── ICONS ── */
+.icon-box {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; flex-shrink: 0;
+}
+.icon-teal { background: #e0f2fe; color: var(--teal); }
+.icon-green { background: #d1fae5; color: var(--green); }
+.icon-purple { background: #ede9fe; color: #7c3aed; }
+.icon-navy { background: var(--navy); color: white; }
+.icon-amber { background: #fef3c7; color: #d97706; }
+
+/* ── CHECK LIST ── */
+.check-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.check-list li { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--text-muted); }
+.check-list li::before { content: '✓'; width: 18px; height: 18px; border-radius: 50%; background: var(--green-dim); color: var(--green); font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* ── CODE BLOCK ── */
+.code-block {
+  background: #0f172a; border-radius: var(--r);
+  padding: 1rem 1.25rem; font-family: var(--mono);
+  font-size: 0.78rem; line-height: 1.7; overflow-x: auto;
+  color: #94a3b8;
+}
+.code-block .kw { color: #7dd3fc; }
+.code-block .ty { color: #a5f3fc; }
+.code-block .str { color: #86efac; }
+.code-block .cm { color: #475569; font-style: italic; }
+.code-block .fn { color: #fbbf24; }
+.code-block .num { color: #f9a8d4; }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid var(--border); }
+
+/* ── GRID HELPERS ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; }
+
+/* ── PROGRESS BAR ── */
+.progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; }
+
+/* ── STAT BOX ── */
+.stat-box { text-align: center; }
+.stat-num { font-size: 2.5rem; font-weight: 700; color: white; line-height: 1; }
+.stat-label { font-size: 0.78rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+
+/* ── FOOTER ── */
+footer {
+  background: white; border-top: 1px solid var(--border);
+  padding: 3rem 0 2rem;
+}
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2rem; }
+.footer-logo { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+.footer-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; }
+.footer-col h5 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.75rem; }
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.footer-links a { font-size: 0.84rem; color: var(--text-muted); text-decoration: none; }
+.footer-links a:hover { color: var(--text); }
+.footer-bottom { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); font-size: 0.78rem; color: var(--text-light); text-align: center; }
+.footer-icons { display: flex; gap: 8px; margin-top: 0.75rem; }
+.footer-icon { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: var(--text-muted); }
+
+/* ── CHAT WIDGET ── */
+.chat-widget {
+  background: white; border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: var(--shadow-lg);
+  overflow: hidden; max-width: 380px;
+}
+.chat-header {
+  background: white; border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between;
+}
+.chat-title { font-size: 0.88rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.chat-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); }
+.chat-body { padding: 1rem; display: flex; flex-direction: column; gap: 10px; min-height: 220px; background: #f8fafc; }
+.msg { padding: 0.6rem 0.9rem; border-radius: 12px; font-size: 0.82rem; max-width: 85%; line-height: 1.5; }
+.msg-user { background: var(--teal); color: white; align-self: flex-end; border-bottom-right-radius: 3px; }
+.msg-ai { background: white; border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-bottom-left-radius: 3px; box-shadow: var(--shadow); }
+.msg-label { font-size: 0.65rem; color: var(--text-light); margin-bottom: 3px; text-align: right; }
+.msg-label.ai { text-align: left; }
+.msg-sap { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.75rem; color: #1e40af; }
+.msg-sap-tag { font-size: 0.65rem; font-weight: 600; color: var(--teal-dark); text-transform: uppercase; margin-bottom: 3px; }
+.chat-input {
+  padding: 0.75rem 1rem; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; background: white;
+}
+.chat-input input {
+  flex: 1; border: none; outline: none; font-size: 0.82rem; color: var(--text);
+  font-family: var(--font); background: transparent;
+}
+.chat-input input::placeholder { color: var(--text-light); }
+.chat-send {
+  width: 32px; height: 32px; border-radius: 8px; background: var(--teal);
+  display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; font-size: 0.85rem;
+}
+
+/* ── PIPELINE STEPS ── */
+.pipeline-steps { display: flex; gap: 0; }
+.pipe-step {
+  flex: 1; text-align: center; padding: 1.25rem 0.75rem;
+  background: white; border: 1px solid var(--border);
+  border-right: none; position: relative;
+}
+.pipe-step:first-child { border-radius: 10px 0 0 10px; }
+.pipe-step:last-child { border-right: 1px solid var(--border); border-radius: 0 10px 10px 0; }
+.pipe-step.active { background: var(--navy); border-color: var(--navy); color: white; z-index: 1; }
+.pipe-step.active p { color: rgba(255,255,255,0.7); }
+.pipe-icon { font-size: 1.2rem; margin-bottom: 6px; }
+.pipe-num { font-size: 0.68rem; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.pipe-step.active .pipe-num { color: rgba(255,255,255,0.5); }
+.pipe-name { font-size: 0.8rem; font-weight: 600; margin-bottom: 3px; }
+.pipe-desc { font-size: 0.72rem; color: var(--text-muted); }
+.active-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; font-size: 0.6rem; font-weight: 700; padding: 2px 6px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ── STEP LIST ── */
+.step-list { display: flex; flex-direction: column; gap: 1px; }
+.step-item {
+  display: flex; align-items: flex-start; gap: 1rem;
+  padding: 1rem 1.25rem; background: white; border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.step-item + .step-item { margin-top: 8px; }
+.step-icon-wrap { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem; }
+
+/* ── LAYER STACK ── */
+.layer-stack { display: flex; flex-direction: column; gap: 3px; }
+.layer-item {
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 0.9rem 1.25rem; background: white;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: box-shadow 0.15s;
+}
+.layer-item:hover { box-shadow: var(--shadow-md); }
+.layer-item.core { background: var(--navy); color: white; border-color: var(--navy); }
+.layer-item.core p { color: #94a3b8; }
+.layer-num { font-size: 0.7rem; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+.layer-item.core .layer-num { color: #64748b; }
+.layer-arrow { color: var(--text-light); font-size: 0.8rem; text-align: center; padding: 2px 0; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .pipeline-steps { flex-wrap: wrap; }
+  .pipe-step { flex: 0 0 calc(50% - 0.5rem); border-right: 1px solid var(--border); border-radius: var(--r); }
+  nav .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     NAVIGATION
+════════════════════════════════════════════ -->
+<nav>
+  <div class="nav-logo" onclick="showPage('home')">Cognitive Enterprise</div>
+  <ul class="nav-links">
+    <li><a href="#" onclick="showPage('home')" id="nav-home" class="active">Home</a></li>
+    <li><a href="#" onclick="showPage('architecture')" id="nav-architecture">Architecture</a></li>
+    <li><a href="#" onclick="showPage('rag')" id="nav-rag">RAG Flow</a></li>
+    <li><a href="#" onclick="showPage('developer')" id="nav-developer">Developer Mode</a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="nav-icon">?</div>
+    <div class="nav-icon">⚙</div>
+    <a class="btn btn-primary" href="#">Try Demo</a>
+  </div>
+</nav>
+
+
+<!-- ═══════════════════════════════════════════
+     PAGE 1: HOME
+════════════════════════════════════════════ -->
+<div id="page-home" class="page active">
+
+  <!-- HERO -->
+  <section style="background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 50%, #f0fdf4 100%); padding: 5rem 0 4rem;">
+    <div class="container">
+      <div style="display:grid; grid-template-columns:1fr 1.1fr; gap:3rem; align-items:center;">
+        <div>
+          <div class="badge badge-teal" style="margin-bottom:1.25rem;">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;"></span>
+            Powered by Ollama &amp; SAP B1
+          </div>
+          <h1>Chat with your <span class="text-teal">SAP B1 Data</span> with Precision AI</h1>
+          <p style="margin: 1.25rem 0 2rem; font-size:1rem; max-width:430px;">A beginner-friendly assistant built with Clean Architecture. Bridge the gap between corporate stability and fluid intelligence. Query invoices, stock, and orders in plain English.</p>
+          <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <a class="btn btn-primary btn-lg" href="#">Get Started →</a>
+            <a class="btn btn-outline btn-lg" href="#">View Documentation</a>
+          </div>
+        </div>
+        <div>
+          <div class="chat-widget">
+            <div class="chat-header">
+              <div class="chat-title"><div class="chat-dot"></div> SAP AI Assistant</div>
+              <div style="color:var(--text-light); font-size:0.9rem; cursor:pointer;">⋯</div>
+            </div>
+            <div class="chat-body">
+              <div>
+                <div class="msg-label">YOU · 10:22 AM</div>
+                <div class="msg msg-user">"What is the status of sales order 4242?"</div>
+              </div>
+              <div>
+                <div class="msg-label ai">SAP CONTENT GROUNDED</div>
+                <div class="msg-sap">
+                  <div class="msg-sap-tag">SAP Content Grounded</div>
+                  Sales order #4242 for <strong>ACME Corp</strong> is currently <span style="background:#dcfce7;color:#15803d;padding:1px 5px;border-radius:3px;font-size:0.7rem;font-weight:600;">OPEN</span>. Total value is $1,240.50 and it is scheduled for delivery on Oct 15.
+                </div>
+              </div>
+              <div style="align-self:flex-end;">
+                <div class="msg-label">YOU · 10:23 AM</div>
+                <div class="msg msg-user">"Is the stock available for this order?"</div>
+              </div>
+            </div>
+            <div class="chat-input">
+              <input type="text" placeholder="Ask a question about SAP B1...">
+              <div style="display:flex;gap:6px;">
+                <div style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:var(--text-muted);cursor:pointer;">+</div>
+                <div class="chat-send">▶</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAKEHOLDER SECTION -->
+  <section>
+    <div class="container">
+      <div style="text-align:center; margin-bottom:3rem;">
+        <h2>Empowering Every Stakeholder</h2>
+        <p style="margin-top:0.5rem;">Dual-mode architecture designed for both operational efficiency and technical acceleration.</p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="icon-box icon-teal" style="margin-bottom:1rem;">📊</div>
+          <h3 style="margin-bottom:0.5rem;">Business User Mode</h3>
+          <p style="margin-bottom:1rem; font-size:0.875rem;">Navigate SAP B1 with zero friction. Get instant summaries of sales, customers, and inventory status without manually digging through legacy ERP screens.</p>
+          <ul class="check-list">
+            <li>Plain English Queries</li>
+            <li>Real-time SAP Grounding</li>
+            <li>Mobile-ready Insights</li>
+          </ul>
+        </div>
+        <div class="card card-dark">
+          <div class="icon-box" style="background:rgba(14,165,233,0.2);color:var(--teal);margin-bottom:1rem;">💻</div>
+          <h3 style="margin-bottom:0.5rem; color:white;">Developer Mode</h3>
+          <p style="margin-bottom:1rem; font-size:0.875rem;">Accelerate integration cycles. Generate boilerplate C# code for SAP B1 Service Layer integrations and troubleshoot business logic with AI-assisted documentation.</p>
+          <div class="code-block" style="font-size:0.75rem;">
+<span class="cm">// Generate Integration</span>
+<span class="kw">public</span> <span class="kw">async</span> <span class="ty">Task</span> <span class="fn">CreateOrder</span>(<span class="ty">Order</span> o) {
+  <span class="kw">await</span> _gateway.<span class="fn">PostAsync</span>(<span class="str">"/Orders"</span>, o);
+}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY THIS PROJECT -->
+  <section style="background:var(--bg); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+    <div class="container">
+      <div style="text-align:center; margin-bottom:3rem;">
+        <h2>Why This Project?</h2>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 280px 1fr; gap:1.25rem; align-items:start;">
+        <div style="display:flex; flex-direction:column; gap:1.25rem;">
+          <div class="card">
+            <div style="font-size:0.7rem;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Structural Foundation</div>
+            <div class="icon-box icon-teal" style="margin-bottom:.75rem; width:36px;height:36px;font-size:1rem;">🏗</div>
+            <h4 style="margin-bottom:.4rem;">Strict Clean Architecture</h4>
+            <p style="font-size:0.82rem;">Isolation of business rules from external concerns. Our five-project structure ensures Domain logic never leaks into Infrastructure, allowing for ultimate swappability.</p>
+          </div>
+          <div class="card">
+            <div class="icon-box icon-purple" style="margin-bottom:.75rem; width:36px;height:36px;font-size:1rem;">⚙</div>
+            <h4 style="margin-bottom:.4rem;">Open Source Core</h4>
+            <p style="font-size:0.82rem;">Built on .NET 8 and open standards. The entire pipeline — from chunking to cosine similarity — is transparent and extensible.</p>
+          </div>
+          <div class="card">
+            <div class="icon-box icon-teal" style="margin-bottom:.75rem; width:36px;height:36px;font-size:1rem;">🔀</div>
+            <h4 style="margin-bottom:.4rem;">Decoupled by Design</h4>
+            <p style="font-size:0.82rem;">Interfaces everywhere. Swap your DB, AI provider, or SAP gateway with a single registration change in the DI container.</p>
+          </div>
+        </div>
+        <div style="border-radius:12px;overflow:hidden;background:var(--navy);display:flex;align-items:center;justify-content:center;min-height:280px;">
+          <div style="color:rgba(255,255,255,0.1);font-size:4rem;text-align:center;">🖧</div>
+        </div>
+        <div class="card card-teal" style="display:flex;flex-direction:column;justify-content:space-between;min-height:280px;">
+          <div>
+            <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;opacity:.8;margin-bottom:.5rem;">Data Privacy</div>
+            <div class="icon-box" style="background:rgba(255,255,255,0.2);color:white;margin-bottom:.75rem; width:36px;height:36px;font-size:1rem;">🔒</div>
+            <h3 style="color:white;margin-bottom:.5rem;">Local RAG &amp; LLM</h3>
+            <p style="font-size:0.875rem;">Using Ollama and SQLite Vector storage, your enterprise data never leaves your premises. No cloud APIs, no data mining — just private, secure intelligence.</p>
+          </div>
+          <div style="margin-top:1.5rem;">
+            <div style="font-size:0.72rem;opacity:.75;margin-bottom:.35rem;">LLM Status</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem;">
+              <div style="font-size:0.8rem;font-weight:600;color:white;">Local / Active</div>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%;background:rgba(255,255,255,0.6);"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TECHNICAL BLUEPRINT -->
+  <section style="background:var(--navy); padding:4rem 0;">
+    <div class="container">
+      <div style="margin-bottom:2rem;">
+        <h2 style="color:white;">Technical Blueprint</h2>
+        <p style="color:#64748b; margin-top:.5rem;">The request lifecycle — orchestrating SAP Service Layer, Ollama Embeddings, and SQLite Vector Store into a single unified intelligence stream.</p>
+        <div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap;">
+          <span class="badge badge-outline">API Layer</span>
+          <span class="badge badge-outline">Domain Logic</span>
+          <span class="badge badge-outline">Infrastructure</span>
+        </div>
+      </div>
+      <div class="pipeline-steps">
+        <div class="pipe-step">
+          <div class="pipe-icon">⬆</div>
+          <div class="pipe-num">1. Input</div>
+          <div class="pipe-name">User Message</div>
+          <p class="pipe-desc">Through Minimal API</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-icon">🎯</div>
+          <div class="pipe-num">2. Intent</div>
+          <div class="pipe-name">Keyword Detector</div>
+          <p class="pipe-desc">Identifies Saplntent</p>
+        </div>
+        <div class="pipe-step active" style="position:relative;">
+          <div class="active-badge">Critical</div>
+          <div class="pipe-icon">✦</div>
+          <div class="pipe-num">3. Grounding</div>
+          <div class="pipe-name">Fetching SAP Data</div>
+          <p class="pipe-desc">+ RAG Excerpts</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-icon">📝</div>
+          <div class="pipe-num">4. Rendering</div>
+          <div class="pipe-name">Assembling Prompt</div>
+          <p class="pipe-desc">Context-Aware</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-icon">🤖</div>
+          <div class="pipe-num">5. LLM</div>
+          <div class="pipe-name">Local Generation</div>
+          <p class="pipe-desc">via Ollama Client</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section style="background:var(--navy2); padding:3rem 0;">
+    <div class="container">
+      <div class="grid-4">
+        <div class="stat-box">
+          <div class="stat-num">74</div>
+          <div class="stat-label">Automated Tests</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">0</div>
+          <div class="stat-label">Cloud Dependencies</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">5</div>
+          <div class="stat-label">Isolated Layers</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">100%</div>
+          <div class="stat-label">Open Source</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section>
+    <div class="container">
+      <div class="card" style="text-align:center; padding:3rem; max-width:600px; margin:0 auto;">
+        <h2 style="margin-bottom:.75rem;">Ready to Augment SAP?</h2>
+        <p style="margin-bottom:2rem;">Explore the project code on GitHub or try the interactive demo to see Clean Architecture in action.</p>
+        <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+          <a class="btn btn-outline btn-lg" href="#">⌥ Explore Repository</a>
+          <a class="btn btn-primary btn-lg" href="#">Launch Live Demo</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">Cognitive Enterprise</div>
+          <div class="footer-desc">Augmenting SAP Business One with Precision AI through local models and clean code.</div>
+          <div class="footer-icons">
+            <div class="footer-icon">⊞</div>
+            <div class="footer-icon">@</div>
+            <div class="footer-icon">✦</div>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <ul class="footer-links">
+            <li><a href="#">Documentation</a></li>
+            <li><a href="#">API Reference</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Legal</h5>
+          <ul class="footer-links">
+            <li><a href="#">Security</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms of Service</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Connect</h5>
+          <ul class="footer-links">
+            <li><a href="#">GitHub</a></li>
+            <li><a href="#">LinkedIn</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2024 Cognitive Enterprise. Augmenting SAP Business One with Precision AI.</div>
+    </div>
+  </footer>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     PAGE 2: ARCHITECTURE
+════════════════════════════════════════════ -->
+<div id="page-architecture" class="page">
+
+  <!-- HERO -->
+  <section style="padding:3.5rem 0 2rem;">
+    <div class="container">
+      <h1 style="margin-bottom:.75rem;">System Architecture &amp; Design Guide</h1>
+      <p style="max-width:580px;">A deep dive into the engineering principles behind the SAP B1 AI Assistant. Bridging corporate stability with the fluid intelligence of modern Clean Architecture and RAG pipelines.</p>
+    </div>
+  </section>
+
+  <section style="padding:1rem 0 3rem;">
+    <div class="container">
+
+      <!-- PROJECT STRUCTURE -->
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.75rem;">
+        <span style="font-size:1.1rem;">◈</span>
+        <h2>Project Structure</h2>
+      </div>
+      <div class="grid-2" style="align-items:start;">
+        <div>
+          <div class="layer-stack">
+            <div class="layer-item">
+              <div>
+                <div class="layer-num">Layer 5</div>
+                <h4>SapAiAssistant.Web</h4>
+                <p style="font-size:0.82rem;margin-top:2px;">Blazor chat UI. Talks to the API and handles user interactions with real-time feedback.</p>
+              </div>
+            </div>
+            <div class="layer-arrow">↓</div>
+            <div class="layer-item">
+              <div>
+                <div class="layer-num">Layer 4</div>
+                <h4>SapAiAssistant.Api</h4>
+                <p style="font-size:0.82rem;margin-top:2px;">Minimal API endpoints. Wires everything together as the system's composition root.</p>
+              </div>
+            </div>
+            <div class="layer-arrow">↓</div>
+            <div class="layer-item">
+              <div>
+                <div class="layer-num">Layer 3</div>
+                <h4>SapAiAssistant.Infrastructure</h4>
+                <p style="font-size:0.82rem;margin-top:2px;">External concerns: Ollama AI client, SQLite, SAP Service Layer, and file systems.</p>
+              </div>
+            </div>
+            <div class="layer-arrow">↓</div>
+            <div class="layer-item">
+              <div>
+                <div class="layer-num">Layer 2</div>
+                <h4>SapAiAssistant.Application</h4>
+                <p style="font-size:0.82rem;margin-top:2px;">Orchestrates use cases. Defines interfaces for services but remains implementation-agnostic.</p>
+              </div>
+            </div>
+            <div class="layer-arrow">↓</div>
+            <div class="layer-item core">
+              <div>
+                <div class="layer-num">Layer 1 (The Core)</div>
+                <h4 style="color:white;">SapAiAssistant.Domain</h4>
+                <p style="font-size:0.82rem;margin-top:2px;">The core business rules and entities. Zero external dependencies. The heart of the system.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1.25rem;">
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+              <div style="font-size:.875rem;font-weight:600;">Architectural Blueprint</div>
+              <div style="display:flex;gap:5px;">
+                <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+                <span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+                <span style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+              </div>
+            </div>
+            <div style="background:var(--navy);border-radius:8px;min-height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:1rem;width:100%;">
+                <div style="background:rgba(14,165,233,.15);border:1px solid rgba(14,165,233,.3);border-radius:6px;padding:.5rem;text-align:center;"><div style="font-size:.65rem;color:rgba(255,255,255,.5);">Domain</div></div>
+                <div style="background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);border-radius:6px;padding:.5rem;text-align:center;"><div style="font-size:.65rem;color:rgba(255,255,255,.5);">Application</div></div>
+                <div style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:.5rem;text-align:center;"><div style="font-size:.65rem;color:rgba(255,255,255,.5);">Infrastructure</div></div>
+                <div style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:6px;padding:.5rem;text-align:center;"><div style="font-size:.65rem;color:rgba(255,255,255,.5);">API + Web</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h4 style="margin-bottom:.5rem;">Clean Architecture Principles</h4>
+            <p style="font-size:0.82rem;margin-bottom:1rem;">Isolation of business rules from UI, database, and frameworks. This structure ensures that the system is testable, independent of technical details, and highly maintainable.</p>
+            <div class="grid-2" style="gap:.75rem;">
+              <div style="display:flex;align-items:flex-start;gap:.5rem;">
+                <span style="color:var(--green);font-size:.8rem;margin-top:2px;">✓</span>
+                <div><div style="font-size:.82rem;font-weight:600;">Swappable Details</div><div style="font-size:.75rem;color:var(--text-muted);">Change DBs without touching core logic.</div></div>
+              </div>
+              <div style="display:flex;align-items:flex-start;gap:.5rem;">
+                <span style="color:var(--green);font-size:.8rem;margin-top:2px;">✓</span>
+                <div><div style="font-size:.82rem;font-weight:600;">One-Way Flow</div><div style="font-size:.75rem;color:var(--text-muted);">Dependencies flow only towards the center.</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin:3rem 0;">
+
+      <!-- DESIGN PATTERNS -->
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.75rem;">
+        <span style="font-size:1.1rem;">✦</span>
+        <h2>Design Patterns &amp; SOLID</h2>
+      </div>
+
+      <div class="grid-2" style="align-items:start;gap:1.5rem;margin-bottom:1.5rem;">
+        <div>
+          <h3 style="color:var(--teal);margin-bottom:.5rem;">Dependency Inversion Principle (DIP)</h3>
+          <p style="font-size:0.875rem;margin-bottom:1rem;">High-level code depends on abstractions, not concrete implementations. This decouples our Application from the specific AI provider or database provider.</p>
+          <div class="code-block">
+<span class="cm">// Domain declares what it needs:</span>
+<span class="kw">public interface</span> <span class="ty">ILlmClient</span>
+{
+    <span class="ty">Task</span>&lt;<span class="kw">string</span>&gt; <span class="fn">GenerateAsync</span>(<span class="kw">string</span> prompt,
+        <span class="kw">string</span>? model = <span class="kw">null</span>);
+}
+
+<span class="cm">// Infrastructure provides implementation:</span>
+<span class="kw">public sealed class</span> <span class="ty">OllamaClient</span> : <span class="ty">ILlmClient</span> { ... }
+
+<span class="cm">// Mock used in unit testing:</span>
+<span class="kw">var</span> llm = Substitute.For&lt;<span class="ty">ILlmClient</span>&gt;();
+llm.<span class="fn">GenerateAsync</span>(...).Returns(<span class="str">"fake response"</span>);</div>
+        </div>
+        <div class="card card-dark" style="display:flex;flex-direction:column;gap:1rem;">
+          <div>
+            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
+              <div class="icon-box" style="background:rgba(14,165,233,.2);color:var(--teal);width:32px;height:32px;font-size:.9rem;">🗄</div>
+              <h4 style="color:white;">Repository Pattern</h4>
+            </div>
+            <p style="font-size:0.82rem;">Decouples persistence from business logic, allowing us to swap databases (SQLite to SQL Server) without changing a single line of Application code.</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.5rem;">
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;background:rgba(255,255,255,.05);border-radius:6px;font-size:.8rem;color:#94a3b8;"><span style="width:18px;height:18px;border-radius:50%;background:rgba(14,165,233,.2);color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0;">1</span>Define IConversationRepository</div>
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;background:rgba(255,255,255,.05);border-radius:6px;font-size:.8rem;color:#94a3b8;"><span style="width:18px;height:18px;border-radius:50%;background:rgba(14,165,233,.2);color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0;">2</span>Implement SqliteConversationRepository</div>
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .75rem;background:rgba(255,255,255,.05);border-radius:6px;font-size:.8rem;color:#94a3b8;"><span style="width:18px;height:18px;border-radius:50%;background:rgba(14,165,233,.2);color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0;">3</span>Inject into ChatService via DI</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:1.5rem;">
+        <div class="card">
+          <h4 style="margin-bottom:.5rem;">Domain-Driven Design</h4>
+          <p style="font-size:.82rem;margin-bottom:.75rem;">Using Entities (identities) and Value Objects (data-defined) to model the SAP business domain accurately.</p>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="font-size:.78rem;color:var(--text-muted);">→ ChatSession (Entity)</div>
+            <div style="font-size:.78rem;color:var(--text-muted);">→ SapIntent (Value Object)</div>
+            <div style="font-size:.78rem;color:var(--text-muted);">→ ConversationContext</div>
+          </div>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:.5rem;">Inversion of Control</h4>
+          <p style="font-size:.82rem;margin-bottom:.75rem;">All dependencies are supplied automatically at runtime using ASP.NET Core's built-in container.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;">
+            <span class="badge" style="background:#dcfce7;color:#15803d;">AddScoped</span>
+            <span class="badge" style="background:#fef3c7;color:#92400e;">AddSingleton</span>
+            <span class="badge" style="background:#ede9fe;color:#6d28d9;">AddTransient</span>
+          </div>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:.5rem;">Testing Strategy</h4>
+          <p style="font-size:.82rem;margin-bottom:.75rem;">74 automated tests total. Unit tests use NSubstitute for high-speed isolation; integration tests use in-memory SQLite.</p>
+          <div style="margin-top:.75rem;">
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-muted);margin-bottom:4px;"><span>Success Rate</span><span>100% Passing</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--green);"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin:3rem 0;">
+
+      <!-- MESSAGE JOURNEY -->
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.75rem;">
+        <span style="font-size:1.1rem;">◈</span>
+        <h2>Visualizing Complexity: The Message Journey</h2>
+      </div>
+      <div class="grid-2" style="align-items:start;">
+        <div class="step-list">
+          <div class="step-item">
+            <div class="step-icon-wrap" style="background:#e0f2fe;color:var(--teal);">💬</div>
+            <div>
+              <h4 style="margin-bottom:3px;">Step 1: User Intent Detection</h4>
+              <p style="font-size:.82rem;">The KeywordIntentDetector scans the message for ERP entities like "Sales Order" or "Business Partner".</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-icon-wrap" style="background:#fef3c7;color:#d97706;">🔢</div>
+            <div>
+              <h4 style="margin-bottom:3px;">Step 2: RAG Pipeline Ingestion</h4>
+              <p style="font-size:.82rem;">Embeddings are generated via Ollama, and SQLiteVectorStore performs cosine similarity to find relevant documentation chunks.</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-icon-wrap" style="background:#d1fae5;color:var(--green);">⚡</div>
+            <div>
+              <h4 style="margin-bottom:3px;">Step 3: LLM Augmentation</h4>
+              <p style="font-size:.82rem;">The final prompt — enriched with SAP context and RAG excerpts — is sent to the local AI for a grounded response.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card card-dark" style="text-align:center;padding:2rem;">
+          <div style="font-size:2rem;margin-bottom:1rem;">⬇</div>
+          <h4 style="color:white;margin-bottom:.5rem;">Full Technical Specification</h4>
+          <p style="font-size:.82rem;margin-bottom:1.5rem;">Download the complete architectural PDF, including sequence diagrams, class models, and data dictionary.</p>
+          <a class="btn btn-primary" href="#">⬇ Download Full Spec (12.4 MB)</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">Cognitive Enterprise</div>
+          <div class="footer-desc">Augmenting SAP Business One with Precision AI. Built with Clean Architecture, RAG, and integrity.</div>
+        </div>
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <ul class="footer-links"><li><a href="#">Documentation</a></li><li><a href="#">API Reference</a></li></ul>
+        </div>
+        <div class="footer-col">
+          <h5>Legal</h5>
+          <ul class="footer-links"><li><a href="#">Security</a></li><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li></ul>
+        </div>
+        <div class="footer-col">
+          <h5>Status</h5>
+          <ul class="footer-links">
+            <li style="display:flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;"></span><a href="#" style="color:var(--text-muted);">Ollama Status: Online</a></li>
+            <li style="display:flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;"></span><a href="#" style="color:var(--text-muted);">SAP Gateway: Connected</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2024 Cognitive Enterprise. Augmenting SAP Business One with Precision AI.</div>
+    </div>
+  </footer>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     PAGE 3: RAG FLOW
+════════════════════════════════════════════ -->
+<div id="page-rag" class="page">
+
+  <!-- HERO -->
+  <section style="padding:3.5rem 0 2rem;">
+    <div class="container">
+      <div class="badge badge-teal" style="margin-bottom:1rem;">Technical Guide</div>
+      <h1>How it Works: <span class="text-teal">RAG &amp; AI</span></h1>
+      <p style="margin-top:.75rem;max-width:560px;">Discover how our assistant bridges SAP Business One data with generative intelligence through a sophisticated Retrieval-Augmented Generation pipeline.</p>
+    </div>
+  </section>
+
+  <!-- PIPELINE OVERVIEW -->
+  <section style="padding:1.5rem 0 3rem;">
+    <div class="container">
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:3rem;">
+        <div style="background:white;padding:1.25rem .75rem;text-align:center;">
+          <div style="width:42px;height:42px;border-radius:50%;background:#e0f2fe;color:var(--teal);display:flex;align-items:center;justify-content:center;margin:0 auto .6rem;font-size:1.1rem;">👤</div>
+          <div style="font-size:.78rem;font-weight:600;margin-bottom:2px;">User</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">Natural language query input</div>
+        </div>
+        <div style="background:white;padding:1.25rem .75rem;text-align:center;">
+          <div style="width:42px;height:42px;border-radius:50%;background:#d1fae5;color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto .6rem;font-size:1.1rem;">🎯</div>
+          <div style="font-size:.78rem;font-weight:600;margin-bottom:2px;">Intent Detection</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">Parsing user goals &amp; entities</div>
+        </div>
+        <div style="background:white;padding:1.25rem .75rem;text-align:center;">
+          <div style="width:42px;height:42px;border-radius:50%;background:#e0f2fe;color:var(--teal);display:flex;align-items:center;justify-content:center;margin:0 auto .6rem;font-size:1.1rem;">🗄</div>
+          <div style="font-size:.78rem;font-weight:600;margin-bottom:2px;">SAP Context</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">Real-time data synchronization</div>
+        </div>
+        <div style="background:white;padding:1.25rem .75rem;text-align:center;">
+          <div style="width:42px;height:42px;border-radius:50%;background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;margin:0 auto .6rem;font-size:1.1rem;">🔍</div>
+          <div style="font-size:.78rem;font-weight:600;margin-bottom:2px;">RAG Retrieval</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">Vector similarity matching</div>
+        </div>
+        <div style="background:white;padding:1.25rem .75rem;text-align:center;">
+          <div style="width:42px;height:42px;border-radius:50%;background:#fef3c7;color:#d97706;display:flex;align-items:center;justify-content:center;margin:0 auto .6rem;font-size:1.1rem;">✦</div>
+          <div style="font-size:.78rem;font-weight:600;margin-bottom:2px;">LLM Gen</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">Ollama local generation</div>
+        </div>
+        <div style="background:white;padding:1.25rem .75rem;text-align:center;">
+          <div style="width:42px;height:42px;border-radius:50%;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;margin:0 auto .6rem;font-size:1.1rem;">💬</div>
+          <div style="font-size:.78rem;font-weight:600;margin-bottom:2px;">Response</div>
+          <div style="font-size:.7rem;color:var(--text-muted);">Actionable business insight</div>
+        </div>
+      </div>
+
+      <!-- INGESTION + RETRIEVAL -->
+      <div class="grid-2" style="align-items:start;gap:2rem;">
+        <div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1.25rem;">
+            <div style="width:3px;height:20px;background:var(--teal);border-radius:2px;"></div>
+            <h3>Ingestion Phase</h3>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.75rem;">
+            <div class="step-item">
+              <div class="step-icon-wrap" style="background:#e0f2fe;color:var(--teal);font-size:.85rem;">{}</div>
+              <div>
+                <h4 style="margin-bottom:3px;">1. Document Parsing</h4>
+                <p style="font-size:.82rem;">Splitting PDFs and system files into discrete 500-character chunks with sliding window overlaps to preserve context.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-icon-wrap" style="background:#d1fae5;color:var(--green);font-size:.85rem;">∿</div>
+              <div>
+                <h4 style="margin-bottom:3px;">2. Vectorization</h4>
+                <p style="font-size:.82rem;">Using Ollama's local embedding models to convert text into high-dimensional numerical vectors.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-icon-wrap" style="background:#fef3c7;color:#d97706;font-size:.85rem;">≡</div>
+              <div>
+                <h4 style="margin-bottom:3px;">3. Storage</h4>
+                <p style="font-size:.82rem;">Persisting embeddings in SQLite with indexing for fast k-nearest-neighbor (k-NN) retrieval operations.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1.25rem;">
+            <div style="width:3px;height:20px;background:var(--teal);border-radius:2px;"></div>
+            <h3>Retrieval Phase</h3>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.75rem;">
+            <div class="step-item">
+              <div class="step-icon-wrap" style="background:#ede9fe;color:#7c3aed;font-size:.85rem;">🔍</div>
+              <div>
+                <h4 style="margin-bottom:3px;">1. Semantic Querying</h4>
+                <p style="font-size:.82rem;">The system converts the user's question into a vector and searches the database for text with similar mathematical intent.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-icon-wrap" style="background:#e0f2fe;color:var(--teal);font-size:.85rem;">📋</div>
+              <div>
+                <h4 style="margin-bottom:3px;">2. Contextual Prompting</h4>
+                <p style="font-size:.82rem;">Retrieved chunks are injected into the system prompt, providing the LLM with relevant ground truth data.</p>
+              </div>
+            </div>
+            <div class="card card-teal" style="padding:1rem;">
+              <div style="display:flex;align-items:flex-start;gap:.5rem;">
+                <span style="color:rgba(255,255,255,.9);font-size:.9rem;">✓</span>
+                <div>
+                  <div style="font-size:.82rem;font-weight:600;color:white;margin-bottom:3px;">Accuracy Guarantee</div>
+                  <p style="font-size:.78rem;">By grounding the LLM in real SAP context and document retrieval, we eliminate hallucinations and ensure data-driven responses.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin:3rem 0;">
+
+      <!-- TECHNICAL CORE -->
+      <h2 style="margin-bottom:1.75rem;">Technical Core Components</h2>
+      <div class="grid-2" style="align-items:stretch;">
+        <div class="card">
+          <div style="font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Mathematical Model</div>
+          <h3 style="margin-bottom:.5rem;">Cosine Similarity</h3>
+          <p style="font-size:.875rem;margin-bottom:1rem;">Our RAG engine calculates the dot product of two vectors divided by the product of their magnitudes. This measures the cosine of the angle between them, where 1.0 indicates perfect semantic alignment.</p>
+          <div class="code-block" style="font-size:.82rem;">similarity = (A · B) / (||A|| ||B||)</div>
+        </div>
+        <div class="card card-dark">
+          <div style="font-size:.72rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;">Engine</div>
+          <h3 style="color:white;margin-bottom:.5rem;">Ollama Integration</h3>
+          <p style="font-size:.875rem;margin-bottom:1rem;">Powered by local Llama 3 and Mistral models. We bypass cloud costs and data privacy risks by running inference directly on the edge.</p>
+          <div style="margin-top:auto;padding-top:1rem;border-top:1px solid rgba(255,255,255,.1);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:.82rem;color:#64748b;">Local Latency</span>
+              <span style="font-size:.82rem;font-weight:600;color:var(--teal);">&lt; 200ms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin:3rem 0;">
+
+      <!-- CLEAN ARCH PIPELINE -->
+      <div class="card" style="padding:0;overflow:hidden;margin-bottom:3rem;">
+        <div class="grid-2" style="gap:0;">
+          <div style="padding:2rem;">
+            <h3 style="margin-bottom:.75rem;">The Clean Architecture Pipeline</h3>
+            <p style="font-size:.875rem;margin-bottom:1rem;">Our solution separates concerns using the Domain-Driven Design pattern. The Application layer orchestrates Ollama and SAP Service Layer calls, while Infrastructure handles concrete implementations.</p>
+            <ul class="check-list">
+              <li>Strict Dependency Rule (Domain → Infrastructure)</li>
+              <li>Repository Pattern for Storage Isolation</li>
+              <li>Inversion of Control for AI Clients</li>
+            </ul>
+          </div>
+          <div style="background:var(--navy);display:flex;align-items:center;justify-content:center;min-height:240px;padding:2rem;">
+            <div style="display:grid;grid-template-columns:1fr;gap:6px;width:100%;">
+              <div style="background:rgba(14,165,233,.15);border:1px solid rgba(14,165,233,.25);border-radius:6px;padding:.6rem 1rem;font-size:.75rem;color:rgba(255,255,255,.7);">🖥 Web / UI Layer</div>
+              <div style="background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.25);border-radius:6px;padding:.6rem 1rem;font-size:.75rem;color:rgba(255,255,255,.7);">⚙ API + Application Layer</div>
+              <div style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.25);border-radius:6px;padding:.6rem 1rem;font-size:.75rem;color:rgba(255,255,255,.7);">🔧 Infrastructure (Ollama, SAP, SQLite)</div>
+              <div style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.25);border-radius:6px;padding:.6rem 1rem;font-size:.75rem;color:rgba(255,255,255,.7);">◈ Domain Core (Zero Dependencies)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="card card-teal" style="text-align:center;padding:3rem;">
+        <h2 style="color:white;margin-bottom:.75rem;">Ready to build your AI Assistant?</h2>
+        <p style="color:rgba(255,255,255,.8);margin-bottom:2rem;">Access our full documentation and architecture guides to start integrating Cognitive Enterprise into your SAP Business One environment.</p>
+        <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+          <a class="btn btn-outline btn-lg" href="#">Get Started</a>
+          <a class="btn btn-dark btn-lg" href="#">View API Docs</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">Cognitive Enterprise</div>
+          <div class="footer-desc">Precision AI for SAP Business One. Built for the modern enterprise, architected for reliability.</div>
+        </div>
+        <div class="footer-col"><h5>Product</h5><ul class="footer-links"><li><a href="#">Documentation</a></li><li><a href="#">API Reference</a></li><li><a href="#">Security</a></li></ul></div>
+        <div class="footer-col"><h5>Legal</h5><ul class="footer-links"><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li></ul></div>
+        <div></div>
+      </div>
+      <div class="footer-bottom">© 2024 Cognitive Enterprise. Augmenting SAP Business One with Precision AI.</div>
+    </div>
+  </footer>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     PAGE 4: DEVELOPER MODE
+════════════════════════════════════════════ -->
+<div id="page-developer" class="page">
+
+  <!-- HERO -->
+  <section style="background:linear-gradient(135deg,#f0f9ff 0%,#f8fafc 60%,#f0fdf4 100%);padding:4rem 0;">
+    <div class="container">
+      <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:3rem;align-items:center;">
+        <div>
+          <div class="badge badge-teal" style="margin-bottom:1.25rem;">⚡ Developer Mode Enabled</div>
+          <h1>Code at the <span class="text-teal">Speed of Thought</span></h1>
+          <p style="margin:1.25rem 0 2rem;font-size:1rem;max-width:400px;">Empower your SAP Business One integrations with a precision-engineered AI. Generate clean C# code, refactor with architectural confidence, and accelerate your development cycle.</p>
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+            <a class="btn btn-primary btn-lg" href="#">Start Coding →</a>
+            <a class="btn btn-outline btn-lg" href="#">View Documentation</a>
+          </div>
+        </div>
+        <div>
+          <div class="code-block" style="border-radius:12px;font-size:.8rem;box-shadow:var(--shadow-lg);">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid rgba(255,255,255,.08);">
+              <span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+              <span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+              <span style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;"></span>
+              <span style="font-size:.72rem;color:#475569;margin-left:.5rem;">B1ServiceRegistration.cs</span>
+            </div>
+<span class="kw">public static class</span> <span class="ty">B1ServiceRegistration</span>
+{
+  <span class="kw">public static</span> <span class="ty">IServiceCollection</span> <span class="fn">AddSapB1Services</span>(
+      <span class="kw">this</span> <span class="ty">IServiceCollection</span> services)
+  {
+      <span class="cm">/* SAP B1 Service Layer Registration */</span>
+      services.<span class="fn">AddScoped</span>&lt;<span class="ty">ISapAssistantGateway</span>,
+          <span class="ty">ServiceLayerGateway</span>&gt;();
+
+      <span class="kw">return</span> services.<span class="fn">AddHttpClient</span>&lt;<span class="ty">ServiceLayerGateway</span>&gt;(c =&gt;
+      {
+          <span class="kw">var</span> config = <span class="fn">GetSapConfig</span>();
+          c.BaseAddress = <span class="kw">new</span> <span class="ty">Uri</span>(config.Url);
+      });
+  }
+}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURE GRID -->
+  <section>
+    <div class="container">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
+        <div class="card">
+          <div class="icon-box icon-teal" style="margin-bottom:1rem;">⬡</div>
+          <h3 style="margin-bottom:.5rem;">Architecture Aligned</h3>
+          <p style="font-size:.875rem;margin-bottom:1rem;">The AI Assistant enforces Clean Architecture principles by default. Business logic stays isolated from infrastructure, ensuring your SAP B1 integrations are maintainable and scalable.</p>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+            <span class="badge badge-outline">Domain</span>
+            <span class="badge badge-outline">Application</span>
+            <span class="badge badge-outline">Infrastructure</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon-box icon-purple" style="margin-bottom:1rem;">🧪</div>
+          <h3 style="margin-bottom:.5rem;">Testing Strategy</h3>
+          <p style="font-size:.875rem;margin-bottom:.75rem;">Built-in support for xUnit and NSubstitute. Generate unit tests alongside your code for 100% reliability.</p>
+          <ul class="check-list">
+            <li>xUnit Framework</li>
+            <li>NSubstitute Mocks</li>
+            <li>FluentAssertions</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="icon-box icon-green" style="margin-bottom:1rem;">🔧</div>
+          <h3 style="margin-bottom:.5rem;">Refactor with Confidence</h3>
+          <p style="font-size:.875rem;">Seamlessly migrate legacy integrations to modern SAP B1 Service Layer patterns without breaking functionality.</p>
+        </div>
+      </div>
+
+      <div class="grid-2" style="gap:1.25rem;">
+        <div class="card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:.75rem;">
+            <div class="icon-box icon-teal">◈</div>
+            <span class="badge" style="background:#dcfce7;color:#15803d;">Production Ready</span>
+          </div>
+          <h3 style="margin-bottom:.5rem;">Middleware Logic</h3>
+          <div class="grid-2" style="gap:1rem;margin-top:.75rem;">
+            <div>
+              <div style="font-size:.7rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">Correlation IDs</div>
+              <p style="font-size:.8rem;">Trace requests end-to-end across your SAP environment with unique UUIDs.</p>
+            </div>
+            <div>
+              <div style="font-size:.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem;">Exception Handling</div>
+              <p style="font-size:.8rem;">Global handlers for RFC 9457 standardized ProblemDetails responses.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card card-dark">
+          <h4 style="color:white;margin-bottom:.5rem;">Speed Up Integrations</h4>
+          <p style="font-size:.875rem;margin-bottom:1.25rem;">Reduce development time from weeks to hours by leveraging pre-trained SAP B1 business object knowledge.</p>
+          <div style="display:flex;align-items:center;gap:.75rem;">
+            <div style="display:flex;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--teal);border:2px solid var(--navy);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:white;font-weight:700;margin-right:-8px;">A</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--green);border:2px solid var(--navy);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:white;font-weight:700;margin-right:-8px;">B</div>
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--navy3);border:2px solid var(--navy);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:#94a3b8;font-weight:700;">+4k</div>
+            </div>
+            <span style="font-size:.82rem;color:#94a3b8;">Active SAP Developers</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEEP TECHNICAL -->
+  <section style="background:var(--bg);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+    <div class="container">
+      <div style="text-align:center;margin-bottom:2.5rem;">
+        <h2>Deep Technical Integration</h2>
+        <p style="margin-top:.5rem;">Explore the core principles that make Cognitive Enterprise the preferred AI layer for SAP developers.</p>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="icon-box icon-teal" style="margin-bottom:1rem;">⊞</div>
+          <h4 style="margin-bottom:.5rem;">Repository Pattern</h4>
+          <p style="font-size:.82rem;">Decouple persistence from business logic. Swap SQLite for SQL Server or PostgreSQL with zero changes to your core application code.</p>
+        </div>
+        <div class="card">
+          <div class="icon-box icon-purple" style="margin-bottom:1rem;">🔒</div>
+          <h4 style="margin-bottom:.5rem;">Local AI Privacy</h4>
+          <p style="font-size:.82rem;">Leveraging Ollama for local LLM execution. Your sensitive SAP financial and inventory data never leaves your internal network.</p>
+        </div>
+        <div class="card">
+          <div class="icon-box icon-green" style="margin-bottom:1rem;">✦</div>
+          <h4 style="margin-bottom:.5rem;">Dependency Inversion</h4>
+          <p style="font-size:.82rem;">High-level code depends on abstractions, not concrete implementations. Perfect for unit testing complex SAP scenarios.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="background:var(--navy);padding:4rem 0;">
+    <div class="container" style="text-align:center;">
+      <h2 style="color:white;margin-bottom:.75rem;">Ready to Refactor with Precision?</h2>
+      <p style="color:#64748b;margin-bottom:2rem;">Join the new era of SAP development. Start generating clean, testable, and high-performance code today.</p>
+      <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+        <a class="btn btn-outline btn-lg" href="#">Try the Demo</a>
+        <a class="btn btn-primary btn-lg" href="#">Talk to Sales</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">Cognitive Enterprise</div>
+          <div class="footer-desc">Precision AI augmentation for SAP Business One ecosystems.</div>
+        </div>
+        <div class="footer-col"><h5>Resources</h5><ul class="footer-links"><li><a href="#">Documentation</a></li><li><a href="#">API Reference</a></li></ul></div>
+        <div class="footer-col"><h5>Legal</h5><ul class="footer-links"><li><a href="#">Security</a></li><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Service</a></li></ul></div>
+        <div class="footer-col">
+          <h5>Connect</h5>
+          <div style="display:flex;gap:6px;margin-top:2px;">
+            <div class="footer-icon">⊞</div>
+            <div class="footer-icon">&lt;/&gt;</div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2024 Cognitive Enterprise. Augmenting SAP Business One with Precision AI.</div>
+    </div>
+  </footer>
+</div>
+
+
+<script>
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+  return false;
+}
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', e => e.preventDefault());
+});
+</script>
+</body>
+</html>
