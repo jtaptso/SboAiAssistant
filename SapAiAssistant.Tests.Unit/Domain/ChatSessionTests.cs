@@ -8,7 +8,7 @@ public sealed class ChatSessionTests
     [Fact]
     public void Create_SetsIdAndDefaults()
     {
-        var session = ChatSession.Create(AssistantMode.BusinessUser);
+        var session = new ChatSession { Mode = AssistantMode.BusinessUser };
 
         session.Id.Should().NotBeEmpty();
         session.Mode.Should().Be(AssistantMode.BusinessUser);
@@ -19,7 +19,7 @@ public sealed class ChatSessionTests
     [Fact]
     public void Create_UsesSuppliedTitle()
     {
-        var session = ChatSession.Create(AssistantMode.Developer, "My session");
+        var session = new ChatSession { Mode = AssistantMode.Developer, Title = "My session" };
 
         session.Title.Should().Be("My session");
     }
@@ -27,11 +27,12 @@ public sealed class ChatSessionTests
     [Fact]
     public void AddMessage_AppendsMessageAndUpdatesTimestamp()
     {
-        var session = ChatSession.Create(AssistantMode.BusinessUser);
+        var session = new ChatSession { Mode = AssistantMode.BusinessUser };
         var before  = session.UpdatedAt;
 
-        var msg = ChatMessage.Create(session.Id, MessageRole.User, "Hello");
-        session.AddMessage(msg);
+        var msg = new ChatMessage { SessionId = session.Id, Role = MessageRole.User, Content = "Hello" };
+        session.Messages.Add(msg);
+        session.UpdatedAt = DateTime.UtcNow;
 
         session.Messages.Should().HaveCount(1);
         session.Messages[0].Content.Should().Be("Hello");
@@ -41,8 +42,8 @@ public sealed class ChatSessionTests
     [Fact]
     public void UpdateTitle_ChangesTitle()
     {
-        var session = ChatSession.Create(AssistantMode.BusinessUser);
-        session.UpdateTitle("Renamed");
+        var session = new ChatSession { Mode = AssistantMode.BusinessUser };
+        session.Title = "Renamed";
 
         session.Title.Should().Be("Renamed");
     }

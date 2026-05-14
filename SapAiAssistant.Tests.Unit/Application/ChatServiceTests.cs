@@ -78,7 +78,7 @@ public sealed class ChatServiceTests
     [Fact]
     public async Task SendMessage_ExistingSession_ReusesSession()
     {
-        var session = ChatSession.Create(AssistantMode.BusinessUser);
+        var session = new ChatSession { Mode = AssistantMode.BusinessUser };
         var sessionId = session.Id;
         _repo.GetByIdAsync(sessionId, Arg.Any<CancellationToken>()).Returns(session);
 
@@ -148,8 +148,8 @@ public sealed class ChatServiceTests
     [Fact]
     public async Task GetConversation_ReturnsMappedDetail_WhenFound()
     {
-        var session = ChatSession.Create(AssistantMode.BusinessUser, "Test");
-        session.AddMessage(ChatMessage.Create(session.Id, MessageRole.User, "Hi"));
+        var session = new ChatSession { Mode = AssistantMode.BusinessUser, Title = "Test" };
+        session.Messages.Add(new ChatMessage { SessionId = session.Id, Role = MessageRole.User, Content = "Hi" });
         _repo.GetByIdAsync(session.Id, Arg.Any<CancellationToken>()).Returns(session);
 
         var result = await _sut.GetConversationAsync(session.Id);

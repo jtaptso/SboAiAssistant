@@ -45,16 +45,17 @@ public sealed class ChatService : IChatService
         if (request.SessionId.HasValue)
         {
             session = await _conversations.GetByIdAsync(request.SessionId.Value, cancellationToken)
-                      ?? ChatSession.Create(request.Mode);
+                      ?? new ChatSession { Mode = request.Mode, Title = $"Conversation {DateTime.UtcNow:yyyy-MM-dd HH:mm}" };
         }
         else
         {
-            session = ChatSession.Create(request.Mode);
+            session = new ChatSession { Mode = request.Mode, Title = $"Conversation {DateTime.UtcNow:yyyy-MM-dd HH:mm}" };
         }
 
         // Persist the user message
-        var userMessage = ChatMessage.Create(session.Id, MessageRole.User, request.UserMessage);
-        session.AddMessage(userMessage);
+        var userMessage = new ChatMessage { SessionId = session.Id, Role = MessageRole.User, Content = request.UserMessage };
+        session.Messages.Add(userMessage);
+        session.UpdatedAt = DateTime.UtcNow;
 
         // Load recent history for context window
         var history = await _memory.GetRecentAsync(session.Id, cancellationToken: cancellationToken);
@@ -103,8 +104,9 @@ public sealed class ChatService : IChatService
         // Persist assistant response — mark as grounded when SAP data or RAG context was injected
         var isGrounded = sapContext is not null;
         var isGroundedByRag = ragContext is not null;
-        var assistantMessage = ChatMessage.Create(session.Id, MessageRole.Assistant, assistantText, isGrounded);
-        session.AddMessage(assistantMessage);
+        var assistantMessage = new ChatMessage { SessionId = session.Id, Role = MessageRole.Assistant, Content = assistantText, IsGroundedBySap = isGrounded };
+        session.Messages.Add(assistantMessage);
+        session.UpdatedAt = DateTime.UtcNow;
 
         await _conversations.SaveAsync(session, cancellationToken);
 

@@ -25,7 +25,5 @@ internal sealed class ChatSessionConfiguration : IEntityTypeConfiguration<ChatSe
             .WithOne()
             .HasForeignKey(m => m.SessionId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Navigation(s => s.Messages).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

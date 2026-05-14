@@ -33,11 +33,11 @@ public sealed class DocumentIngestionService : IDocumentIngestionService
         for (int i = 0; i < chunks.Count; i++)
         {
             var embedding = await _embeddingClient.EmbedAsync(chunks[i], ct);
-            var chunk = DocumentChunk.Create(documentId, name, i, chunks[i], embedding);
+            var chunk = new DocumentChunk { DocumentId = documentId, DocumentName = name, ChunkIndex = i, Content = chunks[i], Embedding = embedding };
             await _vectorStore.UpsertAsync(chunk, ct);
         }
 
-        var document = Document.Create(name, chunks.Count, documentId);
+        var document = new Document { Id = documentId, Name = name, ChunkCount = chunks.Count };
         await _vectorStore.UpsertDocumentAsync(document, ct);
 
         return document.Id;

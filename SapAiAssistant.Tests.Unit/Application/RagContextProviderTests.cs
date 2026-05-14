@@ -41,7 +41,7 @@ public sealed class RagContextProviderTests
     [Fact]
     public async Task GetContextAsync_WhenChunksReturned_IncludesKnowledgeBaseHeader()
     {
-        var chunk = DocumentChunk.Create(Guid.NewGuid(), "manual.txt", 0, "Relevant content here.", new float[] { 1f, 0f });
+        var chunk = new DocumentChunk { DocumentId = Guid.NewGuid(), DocumentName = "manual.txt", ChunkIndex = 0, Content = "Relevant content here.", Embedding = new float[] { 1f, 0f } };
         _vectorStore.SearchAsync(Arg.Any<float[]>(), Arg.Any<int>(), Arg.Any<float>(), Arg.Any<CancellationToken>())
             .Returns(new[] { chunk });
 

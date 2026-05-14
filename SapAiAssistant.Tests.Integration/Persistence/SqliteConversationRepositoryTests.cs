@@ -32,9 +32,9 @@ public sealed class SqliteConversationRepositoryTests : IDisposable
     [Fact]
     public async Task SaveAndGetById_RoundTrips_SessionWithMessages()
     {
-        var session = ChatSession.Create(AssistantMode.BusinessUser, "Test session");
-        session.AddMessage(ChatMessage.Create(session.Id, MessageRole.User, "Hello"));
-        session.AddMessage(ChatMessage.Create(session.Id, MessageRole.Assistant, "Hi there", isGroundedBySap: true));
+        var session = new ChatSession { Mode = AssistantMode.BusinessUser, Title = "Test session" };
+        session.Messages.Add(new ChatMessage { SessionId = session.Id, Role = MessageRole.User, Content = "Hello" });
+        session.Messages.Add(new ChatMessage { SessionId = session.Id, Role = MessageRole.Assistant, Content = "Hi there", IsGroundedBySap = true });
 
         await _sut.SaveAsync(session);
 
@@ -60,8 +60,8 @@ public sealed class SqliteConversationRepositoryTests : IDisposable
     [Fact]
     public async Task GetAllAsync_ReturnsAllSavedSessions()
     {
-        var s1 = ChatSession.Create(AssistantMode.BusinessUser, "First");
-        var s2 = ChatSession.Create(AssistantMode.Developer, "Second");
+        var s1 = new ChatSession { Mode = AssistantMode.BusinessUser, Title = "First" };
+        var s2 = new ChatSession { Mode = AssistantMode.Developer, Title = "Second" };
         await _sut.SaveAsync(s1);
         await _sut.SaveAsync(s2);
 
@@ -84,10 +84,10 @@ public sealed class SqliteConversationRepositoryTests : IDisposable
     [Fact]
     public async Task SaveAsync_CalledTwice_UpdatesTitle()
     {
-        var session = ChatSession.Create(AssistantMode.BusinessUser);
+        var session = new ChatSession { Mode = AssistantMode.BusinessUser };
         await _sut.SaveAsync(session);
 
-        session.UpdateTitle("Updated title");
+        session.Title = "Updated title";
         await _sut.SaveAsync(session);
 
         var loaded = await _sut.GetByIdAsync(session.Id);
@@ -99,8 +99,8 @@ public sealed class SqliteConversationRepositoryTests : IDisposable
     [Fact]
     public async Task Messages_ArePersistedWithSession()
     {
-        var session = ChatSession.Create(AssistantMode.BusinessUser);
-        session.AddMessage(ChatMessage.Create(session.Id, MessageRole.User, "First question"));
+        var session = new ChatSession { Mode = AssistantMode.BusinessUser };
+        session.Messages.Add(new ChatMessage { SessionId = session.Id, Role = MessageRole.User, Content = "First question" });
 
         await _sut.SaveAsync(session);
 
